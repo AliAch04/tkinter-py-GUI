@@ -254,8 +254,8 @@ class BackgroundApp:
         animation_id = f"anim_{thread_id}_{time.time()}"
 
         msg_demarrage = f"{thread_id} en cours de démarrage"
-        # Délai aléatoire entre 3s et 10s avec animation
-        delay = random.randint(8, 10)
+        # Délai aléatoire entre 5s et 8s avec animation
+        delay = random.randint(5, 8)
         
         # Animation des points
         pt_cnt = 0
@@ -272,10 +272,15 @@ class BackgroundApp:
             # inc des points pt
             pt_cnt = (pt_cnt + 1) % 4 # ne dépasse pas 4 points!!
 
-            time.sleep(1) 
+            time.sleep(0.5) 
 
         # Nettoyage de msg animation pour reutiliser ultérieurement
         if animation_id in self.animation_data:
+            line_start = self.animation_data[animation_id]["line_start"]
+            try:
+                self.log_text.delete(line_start, f"{line_start} lineend")
+            except:
+                pass
             del self.animation_data[animation_id]
 
         self.log_message(f"{thread_id} démarré apres {delay}s!")
