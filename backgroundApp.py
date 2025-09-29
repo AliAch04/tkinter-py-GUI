@@ -56,7 +56,7 @@ class BackgroundApp:
         
         tk.Label(log_frame, text="Journal d'activité:", font=("Arial", 10, "bold")).pack(anchor="w")
         
-        self.log_text = tk.Text(log_frame, height=8, width=50)
+        self.log_text = tk.Text(log_frame, wrap='word', height=8, width=50)
         scrollbar = tk.Scrollbar(log_frame, command=self.log_text.yview)
         self.log_text.configure(yscrollcommand=scrollbar.set)
         
@@ -78,7 +78,16 @@ class BackgroundApp:
     def log_message(self, msg):
         '''Ajouter un message au journal (log_text)'''
         time_stamp = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
-        entry_log = self.log_text.insert(tk.END, f' {time_stamp} , {msg} ')
+        entry_log = f' {time_stamp} , {msg} '
+
+        # thread-safe
+        self.root.after(0, self._update_log_text, entry_log)
+    
+    def _update_log_text(self, log):
+        '''MAJ de log_text (Journal d'activité) d'une maniere thread-safe'''
+        self.log_text.insert(tk.END, log)
+        self.log_text.see(tk.END)
+
 
     def show_error_message(self):
         '''Afficher un erreur aléatoire dans boite de dialog'''
@@ -90,13 +99,22 @@ class BackgroundApp:
         # Afficher le msg en boite dialog
         messagebox.showerror('Erreur Système', err_choise)
 
+        # thread-safe
+        self.root.after(0, self._update_error_display, err_choise)
+
+    
+    def _update_error_display(self, err_msg):
+        '''Afficher et MAJ les erreurs d'une maniere thread-save'''
+
         # MAJ et afficher le conteur
         self.error_label.config(text=f"Erreurs affichées: {self.error_count}")
 
-        # Affirmer dans le journal
-        self.log_text.insert(tk.END, f'Erreur : "{err_choise}" ')
+        # Ajouter l'erreur au journal d'activité avec plus de lisiblitée
+        if self.error_count == 1:
+            self.log_text.insert(tk.END, f'Erreur n°{self.error_count} : "{err_msg}" ')
+        else:
+            self.log_text.insert(tk.END, f'\nErreur n°{self.error_count} : "{err_msg}" ')
         self.log_text.see(tk.END)
-
 
         
     def background_worker_1(self):
