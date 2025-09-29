@@ -10,12 +10,13 @@ class BackgroundApp:
         self.root = root
         self.running = True
         self.error_count = 0
+        self.thread_count = 0
         
         # Configuration de l'interface
         self.setup_gui()
         
         # Démarrer les threads
-        #self.start_threads()
+        self.start_threads()
     
     def setup_gui(self):
         """Configure l'interface graphique"""
@@ -37,9 +38,14 @@ class BackgroundApp:
         title_label.pack(pady=10)
         
         # Statut
-        self.status_label = tk.Label(main_frame, text="🟢 Application en cours d'exécution", 
+        self.status_label = tk.Label(main_frame, text="Application en cours d'exécution", 
                                     font=("Arial", 12), fg="green")
         self.status_label.pack(pady=5)
+
+        # Compteur de threads 
+        self.thread_label = tk.Label(main_frame, text="Threads en cours : 0", 
+                                    font=("Arial", 11))
+        self.thread_label.pack(pady=5)
         
         # Compteur d'erreurs
         self.error_label = tk.Label(main_frame, text="Erreurs affichées: 0", 
@@ -119,29 +125,50 @@ class BackgroundApp:
         
     def background_worker_1(self):
         """1er background qui génére des erreurs chaque 5 seconds"""
-        self.log_message('Thread d\'erreur démarré')
+        self.log_message('Thread 1 d\'erreur démarré\n')
+        
+        # thread-save
+        self.root.after(0, self._update_thread_label)
 
         while self.running == True:
-            # ajouter try/except 
-            self.show_error_message()
+            # ajouter try/except
+            try: 
+                self.show_error_message()
 
-            for i in range(50):
-                if not self.running:
-                    break
-                time.sleep(0.1)
+                for _ in range(50):
+                    if not self.running:
+                        break
+                    time.sleep(0.1)
+
+            except Exception as e:
+                self.log_message(f'Erreur dans le threads 1 : {e}')
+                time.sleep(5)
 
     def background_worker_2(self):
         """2er background qui génére des erreurs chaque 10 seconds"""
-        self.log_message('Thread d\'erreur démarré')
+        self.log_message('Thread 2 d\'erreur démarré\n')
+
+        # thread-save
+        self.root.after(0, self._update_thread_label)
 
         while self.running == True:
-            # ajouter try/except 
-            self.show_error_message()
+            # ajouter try/except
+            try :  
+                self.show_error_message()
 
-            for i in range(100):
-                if not self.running:
-                    break
-                time.sleep(0.1)
+                for i in range(100):
+                    if not self.running:
+                        break
+                    time.sleep(0.1)
+
+            except Exception as e:
+                self.log_message(f'Erreur dans le threads 2 : {e}')
+                time.sleep(10)
+    
+    def _update_thread_label(self):
+        '''MAJ thread counter and afficher le dans thread label'''
+        self.thread_count += 1
+        self.thread_label.config(text=f'Threads en cours : {self.thread_count}')
     
     def start_threads(self):
         """Démarrer la totalités des threads"""
@@ -151,9 +178,11 @@ class BackgroundApp:
 
         # Demarrage des threads
         self.background_thread_1.start()
+        # separeteur de temps
+        time.sleep(2)
         self.background_thread_2.start()
 
-        self.log_message('Tous les threads demarrés')
+        self.log_message('Tous les threads demarrés :\n')
 
 
     
