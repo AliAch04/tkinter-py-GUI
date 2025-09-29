@@ -188,7 +188,124 @@ def listbox_demo():
     
     root.mainloop()
 
-listbox_demo()
+
+from tkinter import ttk
+
+def combobox_demo():
+    root = Tk()
+    root.title("Combobox Demo")
+    root.geometry("500x400")
+    
+    # Basic Combobox
+    Label(root, text="Basic Combobox:", font=("Arial", 12, "bold")).pack(pady=10)
+    
+    values = ["Python", "JavaScript", "Java", "C++", "C#", "Go", "Rust", "Swift", "Kotlin"]
+    combo1 = ttk.Combobox(root, values=values, font=("Arial", 12))
+    combo1.pack(pady=5)
+    combo1.set("Select a language")  # Default text
+    
+    # Readonly Combobox
+    Label(root, text="Readonly Combobox:", font=("Arial", 12, "bold")).pack(pady=10)
+    
+    combo2 = ttk.Combobox(root, values=values, state="readonly", font=("Arial", 12))
+    combo2.pack(pady=5)
+    combo2.set("Python")  # Default selection
+    
+    # Combobox with postcommand
+    def update_values():
+        new_values = [f"Item {i}" for i in range(1, 6)]
+        combo3['values'] = new_values
+    
+    Label(root, text="Dynamic Combobox:", font=("Arial", 12, "bold")).pack(pady=10)
+    
+    combo3 = ttk.Combobox(root, postcommand=update_values, font=("Arial", 12))
+    combo3.pack(pady=5)
+    
+    # Get selection
+    def show_selection():
+        selections = f"""
+        Basic: {combo1.get()}
+        Readonly: {combo2.get()}
+        Dynamic: {combo3.get()}
+        """
+        messagebox.showinfo("Selections", selections)
+    
+    Button(root, text="Show Selections", command=show_selection,
+          font=("Arial", 12)).pack(pady=20)
+    
+    # Bind events
+    def on_select(event):
+        widget = event.widget
+        print(f"Selected: {widget.get()}")
+    
+    combo1.bind("<<ComboboxSelected>>", on_select)
+    combo2.bind("<<ComboboxSelected>>", on_select)
+    
+    root.mainloop()
+
+def progressbar_demo():
+    root = Tk()
+    root.title("Progressbar Demo")
+    root.geometry("500x300")
+    
+    # Progressbars
+    Label(root, text="Determinate Progressbar:", font=("Arial", 12, "bold")).pack(pady=10)
+    
+    progress1 = ttk.Progressbar(root, orient=HORIZONTAL, length=300, mode='determinate')
+    progress1.pack(pady=5)
+    
+    Label(root, text="Indeterminate Progressbar:", font=("Arial", 12, "bold")).pack(pady=10)
+    
+    progress2 = ttk.Progressbar(root, orient=HORIZONTAL, length=300, mode='indeterminate')
+    progress2.pack(pady=5)
+    
+    # Progressbar operations
+    def start_determinate():
+        progress1['maximum'] = 100
+        progress1['value'] = 0
+        for i in range(101):
+            progress1['value'] = i
+            root.update()
+            root.after(50)  # 50ms delay
+    
+    def start_indeterminate():
+        progress2.start(10)  # 10ms interval
+    
+    def stop_indeterminate():
+        progress2.stop()
+    
+    def reset_all():
+        progress1['value'] = 0
+        progress2.stop()
+    
+    # Buttons
+    btn_frame = Frame(root)
+    btn_frame.pack(pady=20)
+    
+    Button(btn_frame, text="Start Determinate", command=start_determinate).pack(side=LEFT, padx=5)
+    Button(btn_frame, text="Start Indeterminate", command=start_indeterminate).pack(side=LEFT, padx=5)
+    Button(btn_frame, text="Stop Indeterminate", command=stop_indeterminate).pack(side=LEFT, padx=5)
+    Button(btn_frame, text="Reset All", command=reset_all).pack(side=LEFT, padx=5)
+    
+    # Variable progressbar
+    Label(root, text="Variable Progressbar:", font=("Arial", 12, "bold")).pack(pady=10)
+    
+    progress_var = DoubleVar()
+    progress3 = ttk.Progressbar(root, orient=HORIZONTAL, length=300, 
+                               mode='determinate', variable=progress_var)
+    progress3.pack(pady=5)
+    
+    scale = Scale(root, from_=0, to=100, orient=HORIZONTAL, 
+                 variable=progress_var, showvalue=True)
+    scale.pack(pady=10)
+    
+    root.mainloop()
+
+progressbar_demo()
+
+#combobox_demo()
+
+#listbox_demo()
 
 #radiobutton_demo()
 
