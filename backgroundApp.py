@@ -126,19 +126,31 @@ class BackgroundApp:
         '''MAJ speciale pour les messages animation'''
         # Supprimer la dernière ligne (de msg animation)
         if id_animation in self.animation_data:
+            # Remplacer le contenu de la ligne existante
             line_start = self.animation_data[id_animation]["line_start"]
-            print(f'2 : {self.animation_data}')
+            print(f'2 = {self.animation_data}')
+            try:
+                # Calculer la fin de la ligne actuelle
+                line_end = self.log_text.index(f"{line_start} lineend")
+                print(f'last_line index : {line_end}')
+                # Remplacer le contenu de cette ligne
+                self.log_text.delete(line_start, line_end)
+                self.log_text.insert(line_start, msg.strip())
+                self.log_text.see(tk.END)
+                
+            except tk.TclError:
+                # Si la ligne a été supprimée, recommencer
+                self._initialize_animation(msg, id_animation)
+        else:
+            # Créer une nouvelle ligne d'animation
+            self._initialize_animation(msg, id_animation)
             
-            self.log_text.delete(line_start, tk.END)
-        
-        # Insérer la nouvelle ligne de msg animation
+    def _initialize_animation(self, msg, id_animation):
+        '''Initialiser une nouvelle ligne d'animation'''
         curr_end = self.log_text.index(tk.END)
         self.log_text.insert(tk.END, msg)
         self.log_text.see(tk.END)
-
-        # Stocker la position de le depart de ligne de msg animation
-        self.animation_data[id_animation] = {'line_start' : curr_end}
-        print(f'1 : {self.animation_data}')
+        self.animation_data[id_animation] = {'line_start': curr_end}
         
 
     def show_error_message(self, thread_name="Général"):
@@ -244,8 +256,6 @@ class BackgroundApp:
         msg_demarrage = f"{thread_id} en cours de démarrage"
         # Délai aléatoire entre 3s et 10s avec animation
         delay = random.randint(8, 10)
-
-        self.log_message(msg_demarrage, True, animation_id)
         
         # Animation des points
         pt_cnt = 0
