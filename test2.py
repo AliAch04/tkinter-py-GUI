@@ -1,53 +1,68 @@
 from tkinter import *
-from PIL import Image, ImageTk
 
-window = Tk()
-window.geometry("580x580")
-window.title('1st tkinter GUI')
-window.config(background="#2a3cc6")
+def entry_bindings_demo():
+    root = Tk()
+    root.title("Entry Bindings and Validation")
+    root.geometry("500x400")
+    
+    # Entry with various bindings
+    entry = Entry(root, font=("Arial", 14), width=30)
+    entry.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+    
+    # Display area for events
+    event_display = Text(root, height=15, width=50)
+    event_display.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+    
+    def log_event(event=None):
+        event_display.insert(END, f"Event: {event.type} | Key: {event.keysym} | Char: {event.char} | Widget: {event.widget}\n")
+        event_display.see(END)
+    
+    def log_focus(event):
+        event_display.insert(END, f"Focus: {event.type} - Widget {'gained' if event.type == '9' else 'lost'} focus\n")
+        event_display.see(END)
+    
+    # Key bindings
+    entry.bind("<KeyPress>", log_event)          # Any key press
+    entry.bind("<KeyRelease>", log_event)        # Any key release
+    entry.bind("<Return>", lambda e: log_event(e) or print("Enter pressed!"))  # Enter key
+    entry.bind("<FocusIn>", log_focus)           # Gained focus
+    entry.bind("<FocusOut>", log_focus)          # Lost focus
+    
+    # Mouse bindings
+    entry.bind("<Button-1>", lambda e: event_display.insert(END, "Mouse click in entry\n"))
+    entry.bind("<Double-Button-1>", lambda e: event_display.insert(END, "Double click in entry\n"))
+    
+    # Special key combinations
+    entry.bind("<Control-c>", lambda e: event_display.insert(END, "Ctrl+C pressed\n"))
+    entry.bind("<Control-v>", lambda e: event_display.insert(END, "Ctrl+V pressed\n"))
+    entry.bind("<Control-a>", lambda e: event_display.insert(END, "Ctrl+A pressed\n"))
+    
+    # Validation function
+    def validate_input(char):
+        if char.isdigit() or char == "":
+            return True
+        else:
+            event_display.insert(END, "Validation: Only digits allowed!\n")
+            event_display.see(END)
+            return False
+    
+    # Validated entry (only numbers)
+    Label(root, text="Numbers only:").grid(row=2, column=0, sticky="w", pady=5)
+    validated_entry = Entry(root, font=("Arial", 14), width=30)
+    validated_entry.grid(row=3, column=0, padx=10, pady=5, sticky="ew")
+    
+    # Register validation command
+    vcmd = (root.register(validate_input), '%S')
+    validated_entry.config(validate="key", validatecommand=vcmd)
+    
+    def clear_display():
+        event_display.delete(1.0, END)
+    
+    Button(root, text="Clear Events", command=clear_display).grid(row=4, column=0, pady=10)
+    
+    root.grid_rowconfigure(1, weight=1)
+    root.grid_columnconfigure(0, weight=1)
+    
+    root.mainloop()
 
-# Frame with grid layout
-container = Frame(window, 
-                 background="#55ccff",
-                 borderwidth=3,
-                 relief="solid")
-container.pack(pady=20, padx=20)
-
-# Using grid for more control over positioning
-title_label = Label(container, text="User Profile", font=('Arial', 20, 'bold'), fg="#2a3cc6", bg="#55ccff")
-title_label.grid(row=0, column=0, columnspan=2, pady=10)
-
-# Left column - labels
-name_label = Label(container, text="Name:", font=('Arial', 12, 'bold'), fg="#2a3cc6", bg="#55ccff", anchor='e')
-name_label.grid(row=1, column=0, padx=5, pady=5, sticky='e')
-
-email_label = Label(container, text="Email:", font=('Arial', 12, 'bold'), fg="#2a3cc6", bg="#55ccff", anchor='e')
-email_label.grid(row=2, column=0, padx=5, pady=5, sticky='e')
-
-phone_label = Label(container, text="Phone:", font=('Arial', 12, 'bold'), fg="#2a3cc6", bg="#55ccff", anchor='e')
-phone_label.grid(row=3, column=0, padx=5, pady=5, sticky='e')
-
-# Right column - values
-name_value = Label(container, text="John Doe", font=('Arial', 12), fg="#2a3cc6", bg="#55ccff", anchor='w')
-name_value.grid(row=1, column=1, padx=5, pady=5, sticky='w')
-
-email_value = Label(container, text="john@example.com", font=('Arial', 12), fg="#2a3cc6", bg="#55ccff", anchor='w')
-email_value.grid(row=2, column=1, padx=5, pady=5, sticky='w')
-
-phone_value = Label(container, text="+1-234-567-8900", font=('Arial', 12), fg="#2a3cc6", bg="#55ccff", anchor='w')
-phone_value.grid(row=3, column=1, padx=5, pady=5, sticky='w')
-
-# Button spanning both columns
-click_cnt = 0
-def click():
-    global click_cnt
-    click_cnt += 1
-    status_label.config(text=f"Updated {click_cnt} times!")
-
-button = Button(container, text='Update Info', command=click, font=('Arial', 14), bg="#2a3cc6", fg="white")
-button.grid(row=4, column=0, columnspan=2, pady=15)
-
-status_label = Label(container, text="Ready for updates", font=('Arial', 10), fg="#2a3cc6", bg="#55ccff")
-status_label.grid(row=5, column=0, columnspan=2)
-
-window.mainloop()
+entry_bindings_demo()

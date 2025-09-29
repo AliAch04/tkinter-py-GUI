@@ -5,6 +5,7 @@ from PIL import Image, ImageTk
 window = Tk() #instantiate
 window.geometry("580x580")
 window.title('1st tkinter GUI')
+window.resizable(False, False)
 
 # convert image to PhotoImage to use it as icon for the window
 img = Image.open('zoz_logo.jpg')
@@ -64,19 +65,58 @@ container_entry = Frame(container,
 container_entry.pack(fill=X, padx=15)
 
 entry = Entry(container_entry,
-              font=('Arial', 30))
+              width=40,
+              font=('Arial', 12),
+              fg="#a9a9a9",  # gray color for placeholder
+              state='normal')
+
+placeholder_text = 'Write Some Text Here'
+entry.insert(0, placeholder_text)
+
+def on_focus_in(event):
+    if entry.get() == placeholder_text:
+        entry.delete(0, END)
+        entry.config(fg="#363636")  # normal text color
+
+def on_focus_out(event):
+    if entry.get() == '':
+        entry.insert(0, placeholder_text)
+        entry.config(fg="#a9a9a9")  # placeholder color
+
+entry.bind("<FocusIn>", on_focus_in)
+entry.bind("<FocusOut>", on_focus_out)
 entry.pack(side=LEFT, padx=5, pady=15)
 
 def submit():
     content = entry.get()
-    print(f'You typed : {content}')
+    if content != placeholder_text:
+        print(f'You typed : {content}')
+        entry.config(show='*')
+    else:
+        print("No input provided.")
 
 submit_entry = Button(container_entry,
                       text='Submit',
                       font=('Comic Sans', 10),
                       background="#7dda6a",
+                      activebackground="#bbffad",
                       command=submit)
 submit_entry.pack(side=LEFT, expand=True)
+
+def delete():
+    entry.delete(0, END)
+    entry.insert(0, placeholder_text)
+    entry.config(fg="#a9a9a9", show='')
+    window.focus_set() # set focus to window
+
+
+clear_entry = Button(container_entry,
+                     text='Clear',
+                     font=('Comic Sans', 10),
+                     background="#da806a",
+                     activebackground="#ffb3a0",
+                     command=delete)
+clear_entry.pack(side=RIGHT, expand=True)
 
 
 window.mainloop() #activate the window and listen for events!
