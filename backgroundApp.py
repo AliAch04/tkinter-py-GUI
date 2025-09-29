@@ -316,15 +316,52 @@ class BackgroundApp:
         thread.start()
         self.log_message("Lancement d'un thread de test supplémentaire\n")
     
+    def stop_app2(self):
+        """Arrêter l'app proprement"""
+        self.log_message("\nDemande d'arrêt de l'application...")
+        self.running = False
+        pt_cnt = 0
+
+        base_txt = 'Arrêt en cours'
+
+        for _ in range(2):
+            curr_pts = '.' * (pt_cnt+1)
+            anim_txt = f'{base_txt}{curr_pts}'
+            self.status_label.config(text=anim_txt, fg='red')
+
+            pt_cnt = (pt_cnt + 1) % 3
+            print(anim_txt)
+            time.sleep(0.4)
+
+
+        # Message de confirmation avant fermeture
+        self.log_message("Fermeture dans 2 secondes...\n")
+        self.root.after(2000, self.root.destroy)
+
     def stop_app(self):
         """Arrêter l'app proprement"""
         self.log_message("\nDemande d'arrêt de l'application...")
         self.running = False
-        self.status_label.config(text='Arrêt en cours...', fg='red')
+        
+        self.stop_animation_count = 0
+        self._animate_stop_status()
 
-        # AMÉLIORATION: Message de confirmation avant fermeture
+        # Message de confirmation avant fermeture
         self.log_message("Fermeture dans 2 secondes...\n")
         self.root.after(2000, self.root.destroy)
+
+    def _animate_stop_status(self):
+        """Animation des points pour le statut d'arrêt"""
+        if self.stop_animation_count < 5: # condition de convergence (5 cycles) 
+            base_txt = 'Arrêt en cours'
+            curr_pts = '.' * (self.stop_animation_count % 3 + 1)
+            anim_txt = f'{base_txt}{curr_pts}'
+            
+            self.status_label.config(text=anim_txt, fg='red')
+            print(anim_txt)  
+            
+            self.stop_animation_count += 1
+            self.root.after(400, self._animate_stop_status)  # 0.4 seconde recursive
 
 def main():
     root = tk.Tk()
