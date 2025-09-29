@@ -11,6 +11,7 @@ class BackgroundApp:
         self.running = True
         self.error_count = 0
         self.thread_count = 0
+        self.active_threads = [] 
         
         # Configuration de l'interface
         self.setup_gui()
@@ -21,7 +22,7 @@ class BackgroundApp:
     def setup_gui(self):
         """Configure l'interface graphique"""
         self.root.title("Application Background + Tkinter")
-        self.root.geometry("600x500")
+        self.root.geometry("650x550") 
         
         # Frame principal
         main_frame = tk.Frame(self.root, 
@@ -54,15 +55,22 @@ class BackgroundApp:
         
         # Log des activités
         log_frame = tk.Frame(main_frame, 
-                             highlightthickness=2,  # border thickness
-                             highlightbackground="#ff8a8a",  # Border color (not focused),
+                             highlightthickness=2,
+                             highlightbackground="#ff8a8a",
                              highlightcolor="#fc4c4c")
-        
         log_frame.pack(fill=tk.BOTH, expand=True, pady=10)
         
-        tk.Label(log_frame, text="Journal d'activité:", font=("Arial", 10, "bold")).pack(anchor="w")
+        tk.Label(log_frame, text="📝 Journal d'activité:", font=("Arial", 10, "bold")).pack(anchor="w")
         
-        self.log_text = tk.Text(log_frame, wrap='word', height=8, width=50)
+        self.log_text = tk.Text(log_frame, 
+                               wrap='word', 
+                               height=12,           
+                               width=60,            
+                               font=("Consolas", 9), 
+                               bg="#f8f9fa",        
+                               relief="solid",      
+                               bd=1)
+        
         scrollbar = tk.Scrollbar(log_frame, command=self.log_text.yview)
         self.log_text.configure(yscrollcommand=scrollbar.set)
         
@@ -76,148 +84,197 @@ class BackgroundApp:
         button_frame.pack(pady=10)
         
         tk.Button(button_frame, text="Test Manuel", command=self.manual_test,
-                 bg="lightblue").pack(side=tk.LEFT, padx=5, ipadx=5)
+                 bg="#4CAF50", fg="white", padx=10).pack(side=tk.LEFT, padx=5)
         
-        tk.Button(button_frame, text="Démarrer un Thread", command=self.demarrer_thread,
-                 bg="lightcoral").pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Démarrer Thread Test", command=self.demarrer_thread,
+                 bg="#2196F3", fg="white", padx=10).pack(side=tk.LEFT, padx=5)
         
         tk.Button(button_frame, text="Arrêter", command=self.stop_app,
-                 bg="lightcoral").pack(side=tk.LEFT, padx=5)
+                 bg="#f44336", fg="white", padx=10).pack(side=tk.LEFT, padx=5)
         
-    def log_message(self, msg):
+        
+    def log_message(self, msg, wait=False):
         '''Ajouter un message au journal (log_text)'''
-        time_stamp = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
-        entry_log = f' {time_stamp} , {msg} '
+        if not wait:
+            time_stamp = datetime.now().strftime("%H:%M:%S")  
+            entry_log = f"[{time_stamp}] {msg}\n" 
 
-        # thread-safe
-        self.root.after(0, self._update_log_text, entry_log)
+            # thread-safe
+            self.root.after(0, self._update_log_text, entry_log, wait)
+        else:
+            # thread-safe
+            self.root.after(0, self._update_log_text, entry_log, wait)
+
     
-    def _update_log_text(self, log):
+    def _update_log_text(self, log, wait=False):
         '''MAJ de log_text (Journal d'activité) d'une maniere thread-safe'''
-        self.log_text.insert(tk.END, log)
-        self.log_text.see(tk.END)
+        if not wait:
+            self.log_text.insert(tk.END, log)
+            self.log_text.see(tk.END)
+        else:
+            self.log_text.insert(tk.END, "placeholder")
+            self.log_text.delete(self.log_text.index("end-1c line start"), tk.END)
+            self.log_text.insert(tk.END, log)
+            self.log_text.see(tk.END)
+        
+        # Limiter la taille du log pour une bonne usage de memoire
+        lines = self.log_text.get(1.0, tk.END).split('\n')
+        if len(lines) > 1000:  
+            self.log_text.delete(1.0, f"{len(lines)-1000}.0")
 
+    def show_error_message(self, thread_name="Général"):
+        '''Afficher une erreur aléatoire dans boite de dialogue'''
+        # Messages d'erreur plus descriptifs avec le préfixe de thread
+        errors = [
+            f"{thread_name}: Erreur de connexion réseau",
+            f"{thread_name}: Mémoire insuffisante pour l'opération",
+            f"{thread_name}: Fichier de configuration non trouvé", 
+            f"{thread_name}: Timeout de la base de données",
+            f"{thread_name}: Permission refusée sur le fichier",
+            f"{thread_name}: Syntaxe invalide dans la requête"
+        ]
 
-    def show_error_message(self):
-        '''Afficher un erreur aléatoire dans boite de dialog'''
-        errors = ['erreur1', 'erreur2', 'erreur3', 'erreur4', 'erreur5', 'erreur6']
-
-        err_choise = random.choice(errors)
+        err_choix = random.choice(errors)
         self.error_count += 1
 
-        # Afficher le msg en boite dialog
-        messagebox.showerror('Erreur Système', err_choise)
+        self.root.after(0, self._display_error_message, err_choix, thread_name)
 
-        # thread-safe
-        self.root.after(0, self._update_error_display, err_choise)
-
+    def _display_error_message(self, err_msg, thread_name):
+        '''Afficher la messagebox et mettre à jour l'interface'''
+        messagebox.showerror('Erreur Système', err_msg)
+        self._update_error_display(err_msg, thread_name)
     
-    def _update_error_display(self, err_msg):
-        '''Afficher et MAJ les erreurs d'une maniere thread-save'''
+    def _update_error_display(self, err_msg, thread_name):
+        '''Afficher et MAJ les erreurs d'une maniere thread-safe'''
 
-        # MAJ et afficher le conteur
+        # MAJ et afficher le compteur
         self.error_label.config(text=f"Erreurs affichées: {self.error_count}")
 
-        # Ajouter l'erreur au journal d'activité avec plus de lisiblitée
-        if self.error_count == 1:
-            self.log_text.insert(tk.END, f'Erreur n°{self.error_count} : "{err_msg}" ')
-        else:
-            self.log_text.insert(tk.END, f'\nErreur n°{self.error_count} : "{err_msg}" ')
+        log_entry = f"Erreur n°{self.error_count:03d} ({thread_name}): {err_msg}\n"
+        self.log_text.insert(tk.END, log_entry)
         self.log_text.see(tk.END)
 
-        
     def background_worker_1(self):
-        """1er background qui génére des erreurs chaque 5 seconds"""
-        self.log_message('\nThread 1 d\'erreur démarré\n')
+        """1er background qui génère des erreurs chaque 5 secondes"""
+        thread_id = "Thread-1"
+        self.log_message(f"{thread_id} démarré - active chaque 5s")
         
-        # thread-save
         self.root.after(0, self._update_thread_label)
 
-        while self.running == True:
-            # ajouter try/except
+        while self.running:
             try: 
-                self.show_error_message()
+                self.show_error_message(thread_id)
 
-                for _ in range(50):
+                for _ in range(50): 
                     if not self.running:
-                        break
+                        return  
                     time.sleep(0.1)
 
             except Exception as e:
-                self.log_message(f'Erreur dans le threads 1 : {e}')
+                self.log_message(f'{thread_id}: Exception - {e}')
                 time.sleep(5)
 
     def background_worker_2(self):
-        """2er background qui génére des erreurs chaque 10 seconds"""
-        # Délai
-        time.sleep(6)
+        """2ème background qui génère des erreurs chaque 10 secondes"""
+        thread_id = "Thread-2"
+        
+        # Délai de 6 sconds
+        time.sleep(6) 
 
-        self.log_message('\nThread 2 d\'erreur démarré\n')
-
-        # thread-save
+        self.log_message(f"{thread_id} démarré - active chaque 10s")
         self.root.after(0, self._update_thread_label)
 
+        while self.running:
+            try:  
+                self.show_error_message(thread_id)
 
-        while self.running == True:
-            # ajouter try/except
-            try :  
-                self.show_error_message()
-
-                for i in range(100):
+                for _ in range(100):  
                     if not self.running:
-                        break
+                        return  
                     time.sleep(0.1)
 
             except Exception as e:
-                self.log_message(f'Erreur dans le threads 2 : {e}')
+                self.log_message(f'{thread_id}: Exception - {e}')
                 time.sleep(10)
     
     def _update_thread_label(self):
-        '''MAJ thread counter and afficher le dans thread label'''
+        '''MAJ thread counter et afficher le dans thread label'''
         self.thread_count += 1
-        self.thread_label.config(text=f'Threads en cours : {self.thread_count}')
+        self.thread_label.config(text=f'Threads actifs : {self.thread_count}')
     
     def start_threads(self):
-        """Démarrer la totalités des threads"""
-        # Creation des threads
+        """Démarrer la totalité des threads principaux"""
+        # Journalisation du démarrage
+        self.log_message("🚀 Démarrage des threads principaux...")
+        
+        # Création des threads
         self.background_thread_1 = threading.Thread(target=self.background_worker_1, daemon=True)
         self.background_thread_2 = threading.Thread(target=self.background_worker_2, daemon=True)
 
-        # Demarrage des threads
+        # Démarrage des threads
         self.background_thread_1.start()
         self.background_thread_2.start()
 
-        self.log_message('Tous les threads demarrés :\n')
+        self.log_message("Tous les threads principaux démarrés\n")
     
     def test_thread(self):
-        '''Fonction pour les thread Test'''
-        
-        # Délai
-        time.sleep(1)
+        '''Fonction pour les threads Test supplémentaires'''
+        thread_id = f"Test-{threading.current_thread().name}"
 
-        self.log_message('\nThread Test d\'erreur démarré\n')
+        # Délai aléatoire entre 1s et 3s avec animation
+        delay = random.randint(1, 10)
+        msg_demarrage = str(thread_id) + "en cours de démarrage"
+        for i in range(delay):
+            if msg_demarrage != str(thread_id) + "en cours de démarrage...":
+                msg_demarrage += '.'
+                self.log_message(msg_demarrage, True)
+            else:
+                msg_demarrage = str(thread_id) + "en cours de démarrage"
+                self.log_message(msg_demarrage, True)
+            time.sleep(0.5)
 
-        # thread-save
+        self.log_message(f"{thread_id} démarré")
         self.root.after(0, self._update_thread_label)
 
-    
+        # Simulation de travail en 3 cycles
+        try:
+            for i in range(3):  
+                if not self.running:
+                    break
+                self.log_message(f"🔧 {thread_id} - Cycle de travail {i+1}/3")
+                time.sleep(2)
+        except Exception as e:
+            self.log_message(f"💥 {thread_id}: Erreur - {e}")
+        finally:
+            self.log_message(f"🏁 {thread_id} terminé\n")
+            # Decrementer le cmpt quand le thread se termine
+            self.root.after(0, self._decrement_thread_label)
+
+    def _decrement_thread_label(self):
+        '''Décrémenter le compteur de threads'''
+        self.thread_count = max(0, self.thread_count - 1) # sans if
+        self.thread_label.config(text=f'Threads actifs : {self.thread_count}')
+
     def manual_test(self):
-        """Tester manuellement des threats (erreurs)"""
-        self.show_error_message()
-        self.log_message(" -- Test manuel déclenché!")
-
+        """Tester manuellement des threads (erreurs)"""
+        self.log_message("Déclenchement de test manuel...")
+        self.show_error_message("Test-Manuel")
+    
     def demarrer_thread(self):
-        thread = threading.Thread(target=self.test_thread ,daemon=True)
-
+        """Démarrer un thread de test supplémentaire"""
+        thread = threading.Thread(target=self.test_thread, daemon=True, name=f"Thread-{time.time()}")
         thread.start()
+        self.log_message("Lancement d'un thread de test supplémentaire\n")
     
     def stop_app(self):
-        """Arreter l'app proprement"""
+        """Arrêter l'app proprement"""
+        self.log_message("\nDemande d'arrêt de l'application...")
         self.running = False
-        self.status_label.config(text='Application en cours de fermeture...', fg='red')
+        self.status_label.config(text='Arrêt en cours...', fg='red')
 
-        self.root.after(1500, self.root.destroy)
-        print('Application a été arretée proprement!')
+        # AMÉLIORATION: Message de confirmation avant fermeture
+        self.log_message("Fermeture dans 2 secondes...\n")
+        self.root.after(2000, self.root.destroy)
 
 def main():
     root = tk.Tk()
@@ -227,7 +284,6 @@ def main():
     def on_closing():
         app.stop_app()
     
-    # Quand on click sur la botton 'X' dans title bar de root (window) 
     root.protocol("WM_DELETE_WINDOW", on_closing)
     root.mainloop()
 
