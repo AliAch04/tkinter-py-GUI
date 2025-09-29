@@ -78,6 +78,9 @@ class BackgroundApp:
         tk.Button(button_frame, text="Test Manuel", command=self.manual_test,
                  bg="lightblue").pack(side=tk.LEFT, padx=5, ipadx=5)
         
+        tk.Button(button_frame, text="Démarrer un Thread", command=self.demarrer_thread,
+                 bg="lightcoral").pack(side=tk.LEFT, padx=5)
+        
         tk.Button(button_frame, text="Arrêter", command=self.stop_app,
                  bg="lightcoral").pack(side=tk.LEFT, padx=5)
         
@@ -125,7 +128,7 @@ class BackgroundApp:
         
     def background_worker_1(self):
         """1er background qui génére des erreurs chaque 5 seconds"""
-        self.log_message('Thread 1 d\'erreur démarré\n')
+        self.log_message('\nThread 1 d\'erreur démarré\n')
         
         # thread-save
         self.root.after(0, self._update_thread_label)
@@ -146,10 +149,14 @@ class BackgroundApp:
 
     def background_worker_2(self):
         """2er background qui génére des erreurs chaque 10 seconds"""
-        self.log_message('Thread 2 d\'erreur démarré\n')
+        # Délai
+        time.sleep(6)
+
+        self.log_message('\nThread 2 d\'erreur démarré\n')
 
         # thread-save
         self.root.after(0, self._update_thread_label)
+
 
         while self.running == True:
             # ajouter try/except
@@ -178,18 +185,31 @@ class BackgroundApp:
 
         # Demarrage des threads
         self.background_thread_1.start()
-        # separeteur de temps
-        time.sleep(2)
         self.background_thread_2.start()
 
         self.log_message('Tous les threads demarrés :\n')
+    
+    def test_thread(self):
+        '''Fonction pour les thread Test'''
+        
+        # Délai
+        time.sleep(1)
 
+        self.log_message('\nThread Test d\'erreur démarré\n')
+
+        # thread-save
+        self.root.after(0, self._update_thread_label)
 
     
     def manual_test(self):
         """Tester manuellement des threats (erreurs)"""
         self.show_error_message()
         self.log_message(" -- Test manuel déclenché!")
+
+    def demarrer_thread(self):
+        thread = threading.Thread(target=self.test_thread ,daemon=True)
+
+        thread.start()
     
     def stop_app(self):
         """Arreter l'app proprement"""
