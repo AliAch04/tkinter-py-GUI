@@ -12,6 +12,7 @@ class BackgroundApp:
         self.error_count = 0
         self.thread_count = 0
         self.active_threads = [] 
+        self.animation_data = {}
         
         # Configuration de l'interface
         self.setup_gui()
@@ -93,34 +94,52 @@ class BackgroundApp:
                  bg="#f44336", fg="white", padx=10).pack(side=tk.LEFT, padx=5)
         
         
-    def log_message(self, msg, wait=False):
-        '''Ajouter un message au journal (log_text)'''
-        if not wait:
-            time_stamp = datetime.now().strftime("%H:%M:%S")  
+    def log_message(self, msg, is_animation=False, animation_id=None):
+        '''Ajouter un message au journal (log_text) - support animation'''
+        
+        time_stamp = datetime.now().strftime("%H:%M:%S") 
+
+        if is_animation:
+            # pas de date pour les messages non thread pour eviter le flickering!
+            entry_log = f"{msg}\n" 
+        else:
             entry_log = f"[{time_stamp}] {msg}\n" 
 
-            # thread-safe
-            self.root.after(0, self._update_log_text, entry_log, wait)
+        # thread-safe
+        if is_animation and animation_id:
+            self.root.after(0, self._update_animation_text, entry_log, animation_id)
         else:
-            # thread-safe
-            self.root.after(0, self._update_log_text, entry_log, wait)
+            self.root.after(0, self._update_log_text, entry_log)
 
     
-    def _update_log_text(self, log, wait=False):
+    def _update_log_text(self, log):
         '''MAJ de log_text (Journal d'activité) d'une maniere thread-safe'''
-        if not wait:
-            self.log_text.insert(tk.END, log)
-            self.log_text.see(tk.END)
-        else:
-            self.log_text.insert(tk.END, "placeholder")
-            self.log_text.delete(self.log_text.index("end-1c line start"), tk.END)
-            self.log_text.insert(tk.END, log)
-            self.log_text.see(tk.END)
+        self.log_text.insert(tk.END, log)
+        self.log_text.see(tk.END)
         
         # Limiter la taille du log pour une bonne usage de memoire
         lines = self.log_text.get(1.0, tk.END).split('\n')
         if len(lines) > 1000:  
             self.log_text.delete(1.0, f"{len(lines)-1000}.0")
+
+    def _update_animation_text(self, msg, id_animation):
+        '''MAJ speciale pour les messages animation'''
+        # Supprimer la dernière ligne (de msg animation)
+        if id_animation in self.animation_data:
+            line_start = self.animation_data[id_animation]["line_start"]
+            print(f'2 : {self.animation_data}')
+            
+            self.log_text.delete(line_start, tk.END)
+        
+        # Insérer la nouvelle ligne de msg animation
+        curr_end = self.log_text.index(tk.END)
+        self.log_text.insert(tk.END, msg)
+        self.log_text.see(tk.END)
+
+        # Stocker la position de le depart de ligne de msg animation
+        self.animation_data[id_animation] = {'line_start' : curr_end}
+        print(f'1 : {self.animation_data}')
+        
 
     def show_error_message(self, thread_name="Général"):
         '''Afficher une erreur aléatoire dans boite de dialogue'''
@@ -165,7 +184,7 @@ class BackgroundApp:
             try: 
                 self.show_error_message(thread_id)
 
-                for _ in range(50): 
+                for _ in range(500): 
                     if not self.running:
                         return  
                     time.sleep(0.1)
@@ -188,7 +207,7 @@ class BackgroundApp:
             try:  
                 self.show_error_message(thread_id)
 
-                for _ in range(100):  
+                for _ in range(1000):  
                     if not self.running:
                         return  
                     time.sleep(0.1)
@@ -205,35 +224,51 @@ class BackgroundApp:
     def start_threads(self):
         """Démarrer la totalité des threads principaux"""
         # Journalisation du démarrage
-        self.log_message("🚀 Démarrage des threads principaux...")
+        self.log_message("Démarrage des threads principaux...")
         
         # Création des threads
         self.background_thread_1 = threading.Thread(target=self.background_worker_1, daemon=True)
         self.background_thread_2 = threading.Thread(target=self.background_worker_2, daemon=True)
 
         # Démarrage des threads
-        self.background_thread_1.start()
-        self.background_thread_2.start()
+        #self.background_thread_1.start()
+        #self.background_thread_2.start()
 
         self.log_message("Tous les threads principaux démarrés\n")
     
     def test_thread(self):
         '''Fonction pour les threads Test supplémentaires'''
         thread_id = f"Test-{threading.current_thread().name}"
+        animation_id = f"anim_{thread_id}_{time.time()}"
 
-        # Délai aléatoire entre 1s et 3s avec animation
-        delay = random.randint(1, 10)
-        msg_demarrage = str(thread_id) + "en cours de démarrage"
+        msg_demarrage = f"{thread_id} en cours de démarrage"
+        # Délai aléatoire entre 3s et 10s avec animation
+        delay = random.randint(8, 10)
+
+        self.log_message(msg_demarrage, True, animation_id)
+        
+        # Animation des points
+        pt_cnt = 0
         for i in range(delay):
-            if msg_demarrage != str(thread_id) + "en cours de démarrage...":
-                msg_demarrage += '.'
-                self.log_message(msg_demarrage, True)
-            else:
-                msg_demarrage = str(thread_id) + "en cours de démarrage"
-                self.log_message(msg_demarrage, True)
-            time.sleep(0.5)
+            if not self.running:
+                return
+            
+            # construction de msg
+            curr_pt = '.' * pt_cnt
+            animation_msg = f"{msg_demarrage}{curr_pt}"
 
-        self.log_message(f"{thread_id} démarré")
+            self.log_message(animation_msg, True, animation_id)
+
+            # inc des points pt
+            pt_cnt = (pt_cnt + 1) % 4 # ne dépasse pas 4 points!!
+
+            time.sleep(1) 
+
+        # Nettoyage de msg animation pour reutiliser ultérieurement
+        if animation_id in self.animation_data:
+            del self.animation_data[animation_id]
+
+        self.log_message(f"{thread_id} démarré apres {delay}s!")
         self.root.after(0, self._update_thread_label)
 
         # Simulation de travail en 3 cycles
@@ -241,12 +276,12 @@ class BackgroundApp:
             for i in range(3):  
                 if not self.running:
                     break
-                self.log_message(f"🔧 {thread_id} - Cycle de travail {i+1}/3")
+                self.log_message(f"{thread_id} - Cycle de travail {i+1}/3")
                 time.sleep(2)
         except Exception as e:
-            self.log_message(f"💥 {thread_id}: Erreur - {e}")
+            self.log_message(f"{thread_id}: Erreur - {e}")
         finally:
-            self.log_message(f"🏁 {thread_id} terminé\n")
+            self.log_message(f"{thread_id} terminé\n")
             # Decrementer le cmpt quand le thread se termine
             self.root.after(0, self._decrement_thread_label)
 
