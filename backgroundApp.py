@@ -200,9 +200,27 @@ class BackgroundApp:
         pass
 
     def display_new_window(self):
-        '''Creation d'une nouvelle fenetre avec l'emplacement (en haut à droite) de temps de vie = time et délai de relance = delay'''
+        '''Creation d'une nouvelle fenetre avec l'emplacement (en haut à droite)'''
+        # Vérifier si la fenetre est deja ouvert
+        if hasattr(self, 'new_window') and self.new_window:
+            return
+        
+        # Creation de la nouvelle fenetre
         self.new_window = tk.Toplevel(self.root)
-        self.new_window.geometry("100x50-0+0")
+        self.new_window.title("Nouvelle Fenetre")
+        self.new_window.geometry("200x80-0+0")
+
+        # Ajout de contenue dans la fenetre
+        tk.Label(self.new_window, text='Salame')
+
+        # Gestion de fermeture manuelle (X button de nouveau fenetre)
+        def on_manual_close():
+            self.new_window_active = False
+            self._update_nw_btn()
+            self.new_window.destroy()
+            self.new_window = None
+
+        self.new_window.protocol('WM_DELETE_WINDOW', on_manual_close)
         
     
     def shut_down_thread(self):
@@ -210,7 +228,15 @@ class BackgroundApp:
         print('la fenetre va eter detruite inchaAllah')
         self.new_window_active = False
         self.root.after(0, self._update_nw_btn)
-        self.new_window.destroy()
+
+        # Vérifier l'existance de la Fenetre 
+        if hasattr(self, 'new_window') and self.new_window:
+            self.new_window.destroy()
+            self.new_window = None
+        
+        # Decr le compteur de threads
+        self.thread_count = max(0, self.thread_count-1) # le max de decr est 0
+        self.thread_label.config(text=f'Threads actifs : {self.thread_count}')
 
     
     def _update_thread_label(self):
@@ -238,11 +264,9 @@ class BackgroundApp:
         pass
     
     def launch_window_thread(self):
-        '''Démarrer un thread pour lancer une nouvelle fenetre avec le choix de l'arreter'''
-        self.dislay_text_thread = threading.Thread(target=self.display_new_window, daemon=True)
-
-        # Démarré le thread
-        self.dislay_text_thread.start()
+        '''Lancer une nouvelle fenetre avec le choix de l'arreter (dans displa_new_window)'''
+        # Thread-save 
+        self.root.after(0, self.display_new_window)
 
         self.log_message('Nouveau thread a été bien lancé [New Window]')
 
@@ -251,9 +275,8 @@ class BackgroundApp:
         self.root.after(0, self._update_thread_label)
         self.root.after(0, self._update_nw_btn)
 
-        if self.new_window_active:
-            self.root.after(self.timer_nw, self.shut_down_thread)
-            self.root.after(self.delay_nw, self.display_new_window)
+        # Planifier la fermeture automatique
+        self.root.after(self.timer_nw, self.shut_down_thread)
 
     def  _update_nw_btn(self):
         '''MAJ le contenue de button (Nouvelle Fenetre)'''
