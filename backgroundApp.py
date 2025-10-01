@@ -11,6 +11,9 @@ class BackgroundApp:
         self.thread_count = 0
         self.active_threads = [] 
         self.animation_data = {}
+        self.new_window_active = False
+        self.timer_nw = 2000
+        self.delay_nw = 5000
         
         # Configuration de l'interface
         self.setup_gui()
@@ -91,6 +94,9 @@ class BackgroundApp:
         tk.Button(button_frame, text="Arrêter", command=self.stop_app,
                  bg="#f44336", fg="white", padx=10).pack(side=tk.LEFT, padx=5)
         
+        self.lance_nw_btn = tk.Button(button_frame, text="Lancer Nouveau Fenetre", command= self.launch_window_thread,
+                                      bg="#cc3ae2", fg="white", padx=10)
+        self.lance_nw_btn.pack(side=tk.LEFT, padx=5)
         
     def log_message(self, msg, is_animation=False, animation_id=None):
         '''Ajouter un message au journal (log_text) - support animation'''
@@ -185,46 +191,51 @@ class BackgroundApp:
 
     def background_worker_1(self):
         """1er background qui génère des erreurs chaque 5 secondes"""
-        thread_id = "Thread-1"
-        self.log_message(f"{thread_id} démarré - active chaque 5s")
-        
-        self.root.after(0, self._update_thread_label)
-
-        while self.running:
-            try: 
-                self.show_error_message(thread_id)
-
-                for _ in range(500): 
-                    if not self.running:
-                        return  
-                    time.sleep(0.1)
-
-            except Exception as e:
-                self.log_message(f'{thread_id}: Exception - {e}')
-                time.sleep(5)
+        pass
 
     def background_worker_2(self):
         """2ème background qui génère des erreurs chaque 10 secondes"""
-        thread_id = "Thread-2"
+        pass
+
+    def display_new_window(self):
+        '''Creation d'une nouvelle fenetre avec l'emplacement (en haut à droite)'''
+        # Vérifier si la fenetre est deja ouvert
+        if hasattr(self, 'new_window') and self.new_window:
+            return
         
-        # Délai de 6 sconds
-        time.sleep(6) 
+        # Creation de la nouvelle fenetre
+        self.new_window = tk.Toplevel(self.root)
+        self.new_window.title("Nouvelle Fenetre")
+        self.new_window.geometry("200x80-0+0")
 
-        self.log_message(f"{thread_id} démarré - active chaque 10s")
-        self.root.after(0, self._update_thread_label)
+        # Ajout de contenue dans la fenetre
+        tk.Label(self.new_window, text='Salame')
 
-        while self.running:
-            try:  
-                self.show_error_message(thread_id)
+        # Gestion de fermeture manuelle (X button de nouveau fenetre)
+        def on_manual_close():
+            self.new_window_active = False
+            self._update_nw_btn()
+            self.new_window.destroy()
+            self.new_window = None
 
-                for _ in range(1000):  
-                    if not self.running:
-                        return  
-                    time.sleep(0.1)
+        self.new_window.protocol('WM_DELETE_WINDOW', on_manual_close)
+        
+    
+    def shut_down_thread(self):
+        '''Detruire la fenetre'''
+        print('la fenetre va eter detruite inchaAllah')
+        self.new_window_active = False
+        self.root.after(0, self._update_nw_btn)
 
-            except Exception as e:
-                self.log_message(f'{thread_id}: Exception - {e}')
-                time.sleep(10)
+        # Vérifier l'existance de la Fenetre 
+        if hasattr(self, 'new_window') and self.new_window:
+            self.new_window.destroy()
+            self.new_window = None
+        
+        # Decr le compteur de threads
+        self.thread_count = max(0, self.thread_count-1) # le max de decr est 0
+        self.thread_label.config(text=f'Threads actifs : {self.thread_count}')
+
     
     def _update_thread_label(self):
         '''MAJ thread counter et afficher le dans thread label'''
@@ -233,108 +244,49 @@ class BackgroundApp:
     
     def start_threads(self):
         """Démarrer la totalité des threads principaux"""
-        # Journalisation du démarrage
-        self.log_message("Démarrage des threads principaux...")
-        
-        # Création des threads
-        self.background_thread_1 = threading.Thread(target=self.background_worker_1, daemon=True)
-        self.background_thread_2 = threading.Thread(target=self.background_worker_2, daemon=True)
-
-        # Démarrage des threads
-        #self.background_thread_1.start()
-        #self.background_thread_2.start()
-
-        self.log_message("Tous les threads principaux démarrés\n")
+        pass
     
     def test_thread(self):
-        '''Fonction pour les threads Test supplémentaires'''
-        thread_id = f"Test-{threading.current_thread().name}"
-        animation_id = f"anim_{thread_id}_{time.time()}"
-
-        msg_demarrage = f"{thread_id} en cours de démarrage"
-        # Délai aléatoire entre 5s et 8s avec animation
-        delay = random.randint(5, 8)
-        
-        # Animation des points
-        pt_cnt = 0
-        for i in range(delay):
-            if not self.running:
-                return
-            
-            # construction de msg
-            curr_pt = '.' * pt_cnt
-            animation_msg = f"{msg_demarrage}{curr_pt}"
-
-            self.log_message(animation_msg, True, animation_id)
-
-            # inc des points pt
-            pt_cnt = (pt_cnt + 1) % 4 # ne dépasse pas 4 points!!
-
-            time.sleep(0.5) 
-
-        # Nettoyage de msg animation pour reutiliser ultérieurement
-        if animation_id in self.animation_data:
-            line_start = self.animation_data[animation_id]["line_start"]
-            try:
-                self.log_text.delete(line_start, f"{line_start} lineend")
-            except:
-                pass
-            del self.animation_data[animation_id]
-
-        self.log_message(f"{thread_id} démarré apres {delay}s!")
-        self.root.after(0, self._update_thread_label)
-
-        # Simulation de travail en 3 cycles
-        try:
-            for i in range(3):  
-                if not self.running:
-                    break
-                self.log_message(f"{thread_id} - Cycle de travail {i+1}/3")
-                time.sleep(2)
-        except Exception as e:
-            self.log_message(f"{thread_id}: Erreur - {e}")
-        finally:
-            self.log_message(f"{thread_id} terminé\n")
-            # Decrementer le cmpt quand le thread se termine
-            self.root.after(0, self._decrement_thread_label)
+        pass
 
     def _decrement_thread_label(self):
         '''Décrémenter le compteur de threads'''
-        self.thread_count = max(0, self.thread_count - 1) # sans if
-        self.thread_label.config(text=f'Threads actifs : {self.thread_count}')
+        pass
 
     def manual_test(self):
         """Tester manuellement des threads (erreurs)"""
-        self.log_message("Déclenchement de test manuel...")
-        self.show_error_message("Test-Manuel")
+        pass
     
     def demarrer_thread(self):
         """Démarrer un thread de test supplémentaire"""
-        thread = threading.Thread(target=self.test_thread, daemon=True, name=f"Thread-{time.time()}")
-        thread.start()
-        self.log_message("Lancement d'un thread de test supplémentaire\n")
+        pass
     
-    def stop_app2(self):
-        """Arrêter l'app proprement"""
-        self.log_message("\nDemande d'arrêt de l'application...")
-        self.running = False
-        pt_cnt = 0
+    def launch_window_thread(self):
+        '''Lancer une nouvelle fenetre avec le choix de l'arreter (dans displa_new_window)'''
+        # Thread-save 
+        self.root.after(0, self.display_new_window)
 
-        base_txt = 'Arrêt en cours'
+        self.log_message('Nouveau thread a été bien lancé [New Window]')
 
-        for _ in range(2):
-            curr_pts = '.' * (pt_cnt+1)
-            anim_txt = f'{base_txt}{curr_pts}'
-            self.status_label.config(text=anim_txt, fg='red')
+        # thread-save
+        self.new_window_active = True
+        self.root.after(0, self._update_thread_label)
+        self.root.after(0, self._update_nw_btn)
 
-            pt_cnt = (pt_cnt + 1) % 3
-            print(anim_txt)
-            time.sleep(0.4)
+        # Planifier la fermeture automatique
+        self.root.after(self.timer_nw, self.shut_down_thread)
 
+    def  _update_nw_btn(self):
+        '''MAJ le contenue de button (Nouvelle Fenetre)'''
+        if self.new_window_active:
+            print(f'var of nw is :{self.new_window_active} ARRETE')
+            self.lance_nw_btn.config(text='Arreter Nouvelle Fenetre',
+                                 bg="#e699f1", fg="white" , command=self.shut_down_thread)
+        else :
+            print(f'var of nw is :{self.new_window_active} LANCE')
+            self.lance_nw_btn.config(text="Lancer Nouveau Fenetre", command=self.launch_window_thread,
+                  bg="#cc3ae2", fg="white", padx=10)
 
-        # Message de confirmation avant fermeture
-        self.log_message("Fermeture dans 2 secondes...\n")
-        self.root.after(2000, self.root.destroy)
 
     def stop_app(self):
         """Arrêter l'app proprement"""
