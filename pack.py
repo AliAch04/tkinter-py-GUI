@@ -24,8 +24,8 @@ def click():
         clicked = False
 
 def rounded_rectangle(canvas, x1, y1, x2, y2, r=25, **kwargs):
-    x2_y1_t_r_1 = x2_y1_t_r_2 = x2_y2_b_r_1 = x2_y2_b_r_2 = x1_y2_b_l_1 = x1_y2_b_l_2 = x1_y1_t_l_1 = x1_y1_t_l_2 = None
-
+    points =[]
+    
     if 'target_corners' in kwargs:
         # Extract wanted corners (has to be seperated by '|') example of the input : 'top-left|top-right'
         corners = kwargs['target_corners'].split('|')
@@ -34,56 +34,45 @@ def rounded_rectangle(canvas, x1, y1, x2, y2, r=25, **kwargs):
         # Assign wanted corners to the appropriate variable
         for corner in corners:
             if 'top-right' == corner:
-                x2_y1_t_r_1, x2_y1_t_r_2 = (x2-r, y1), (x2, y1+r)
-                print(f'corner to be curve: {corner}')
-            if 'buttom-right' == corner:
-                x2_y2_b_r_1, x2_y2_b_r_2 = (x2-r, y2), (x2, y2-r)
-                print(f'corner to be curve: {corner}')
-            if 'buttom-left' == corner:
-                x1_y2_b_l_1, x1_y2_b_l_2 = (x1+r, y2), (x1, y2-r)
-                print(f'corner to be curve: {corner}')
+                points.extend([x2-r, y1, x2, y1+r])
+            else :
+                points.extend([x2, y1])
+
+            if 'bottom-right' == corner:
+                points.extend([x2-r, y2, x2, y2-r])
+            else :
+                points.extend([x2, y2])
+
+            if 'bottom-left' == corner:
+                points.extend([x1, y2, x1, y2-r])
+            else :
+                points.extend([x1, y1])
+
             if 'top-left' == corner:
-                x1_y1_t_l_1, x1_y1_t_l_2 = (x1-r, y1), (x1, y1+r)
-                print(f'corner to be curve: {corner}')
+                points.extend([x1+r, y1, x1, y1+r])
+            else:
+                points.extend([x1, y1])
         
-        # Assign the control point duplication to the appropriate variable
-        if x2_y1_t_r_1 ==None and  x2_y1_t_r_2 == None:
-            x2_y1_t_r_1, x2_y1_t_r_2 = x2, y1
-        
-        if x2_y2_b_r_1 ==None and  x2_y2_b_r_2 == None:
-            x2_y2_b_r_1, x2_y2_b_r_2 = x2, y2
-
-        if x1_y2_b_l_1 ==None and  x1_y2_b_l_2 == None:
-            x1_y2_b_l_1, x1_y2_b_l_2 = x1, y2
-
-        if x1_y1_t_l_1 ==None and  x1_y1_t_l_2 == None:
-            x1_y1_t_l_1, x1_y1_t_l_2 = x1, y1
-
         # Delete the added argument
         del kwargs['target_corners']
 
     else:
         print('No corner selected') 
-        # Assign Appropriat variable to achive normal curve for all corners
-        x2_y1_t_r_1, x2_y1_t_r_2 = (x2-r, y1), (x2, y1+r)
-        x2_y2_b_r_1, x2_y2_b_r_2 = (x2-r, y2), (x2, y2-r)
-        x1_y2_b_l_1, x1_y2_b_l_2 = (x1+r, y2), (x1, y2-r)
-        x1_y1_t_l_1, x1_y1_t_l_2 = (x1-r, y1), (x1, y1+r)
-        
-    points = [
-        x2, y1,
-        x2_y1_t_r_1, x2_y1_t_r_2,
-        
-        x2, y2,
-        x2_y2_b_r_1, x2_y2_b_r_2,
+        points.extend(
+            [
+            x2, y1,
+            x2, y1,
 
-        x1, y2,
-        x1_y2_b_l_1, x1_y2_b_l_2,
-        
-        x1, y1,
-        x1_y1_t_l_1, x1_y1_t_l_2,
-    ]
+            x2, y2,
+            x2, y2,
 
+            x1, y2,
+            x1, y2,
+
+            x1, y1,
+            x1, y1]
+        )
+        
     return canvas.create_polygon(points, smooth=True, **kwargs)
 
 
@@ -92,7 +81,7 @@ def main():
 
     # Top Title Label
     canvas_top = tk.Canvas(root, width=200, height=80, highlightthickness=0)
-    rounded_rectangle(canvas_top, 0,0,200,75, 25, target_corners='top-left', fill='red', outline='')
+    rounded_rectangle(canvas_top, 0,0,200,75, 25, fill='red', outline='')
     canvas_top.create_text(100, 40, anchor='c', text='Main Title', font=('Arial', 12, 'bold'), fill='white')
 
     # Main frame
