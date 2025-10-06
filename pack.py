@@ -31,33 +31,34 @@ def rounded_rectangle(canvas, x1, y1, x2, y2, r=25, **kwargs):
         corners = kwargs['target_corners'].split('|')
         print(f'corners wanted: {corners}')
 
-        # Assign wanted corners to the appropriate variable
-        for corner in corners:
-            if 'top-right' == corner:
-                points.extend([x2-r, y1, x2, y1+r])
-            else :
-                points.extend([x2, y1])
+        # Config of each rounded corner
+        corners_config = {
+            'top-left' : [x1+r, y1, x1, y1+r],
+            'top-right' : [x2-r, y1, x2, y1+r],
+            'bottom-right': [x2-r, y2, x2, y2-r],
+            'bottom-left' : [x1+r, y2, x1, y2-r]
+        }
 
-            if 'bottom-right' == corner:
-                points.extend([x2-r, y2, x2, y2-r])
-            else :
-                points.extend([x2, y2])
+        # Default corners
+        corners_default = {
+            'top-left' : [x1, y1, x1, y1],
+            'top-right' : [x2, y1, x2, y1],
+            'bottom-right': [x2, y2, x2, y2],
+            'bottom-left' : [x1, y2, x1, y2]
+        }
 
-            if 'bottom-left' == corner:
-                points.extend([x1, y2, x1, y2-r])
-            else :
-                points.extend([x1, y1])
-
-            if 'top-left' == corner:
-                points.extend([x1+r, y1, x1, y1+r])
+        # Assign with correct ordre
+        for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']:
+            if corner in corners:
+                points.extend(corners_config[corner])
             else:
-                points.extend([x1, y1])
+                points.extend(corners_default[corner])
         
-        # Delete the added argument
+        print(f'points = {points}')
+        
         del kwargs['target_corners']
-
     else:
-        print('No corner selected') 
+        print('No corner Select - Normal rectangle') 
         points.extend(
             [
             x2, y1,
@@ -81,7 +82,7 @@ def main():
 
     # Top Title Label
     canvas_top = tk.Canvas(root, width=200, height=80, highlightthickness=0)
-    rounded_rectangle(canvas_top, 0,0,200,75, 25, fill='red', outline='')
+    rounded_rectangle(canvas_top, 0,0,200,75, 25, fill='red', target_corners ='top-left|bottom-right' , outline='')
     canvas_top.create_text(100, 40, anchor='c', text='Main Title', font=('Arial', 12, 'bold'), fill='white')
 
     # Main frame
