@@ -1,5 +1,6 @@
 import tkinter as tk
 import random
+import time
 
 root = tk.Tk()
 root.title('Pack testing')
@@ -24,65 +25,53 @@ def click():
         clicked = False
 
 def rounded_rectangle(canvas, x1, y1, x2, y2, r=25, **kwargs):
-    points =[]
+
+    # Early return if not target_corners
+    target_corners = kwargs.pop('target_corners', None)
+
+    if not target_corners:
+        points = [x2, y1, x2, y1, x2, y2, x2, y2, x1, y2, x1, y2, x1, y1, x1, y1]
+        return canvas.create_polygon(points, smooth=True, **kwargs)
     
-    if 'target_corners' in kwargs:
-        # Extract wanted corners (has to be seperated by '|') example of the input : 'top-left|top-right'
-        corners = kwargs['target_corners'].split('|')
-        print(f'corners wanted: {corners}')
+    # Config of each rounded corner
+    corners_config = {
+        'top-left': (x1, y1+r, x1, y1, x1+r, y1),
+        'top-right': (x2-r, y1, x2, y1, x2, y1+r),
+        'bottom-right': (x2, y2-r, x2, y2, x2-r, y2),
+        'bottom-left': (x1+r, y2, x1, y2, x1, y2-r)
+    }
+    
+    corners_default = {
+        'top-left': (x1, y1, x1, y1),
+        'top-right': (x2, y1, x2, y1),
+        'bottom-right': (x2, y2, x2, y2),
+        'bottom-left': (x1, y2, x1, y2)
+    }
 
-        # Config of each rounded corner
-        corners_config = {
-            'top-left' : [x1, y1+r, x1, y1, x1+r, y1 ],
-            'top-right' : [x2-r, y1, x2, y1, x2, y1+r],
-            'bottom-right': [x2, y2-r, x2, y2, x2-r, y2],
-            'bottom-left' : [x1+r, y2, x1, y2, x1, y2-r]
-        }
-        # Default corners
-        corners_default = {
-            'top-left' : [x1, y1, x1, y1],
-            'top-right' : [x2, y1, x2, y1],
-            'bottom-right': [x2, y2, x2, y2],
-            'bottom-left' : [x1, y2, x1, y2]
-        }
+    # Pre-parser the corners
+    corners_set = set(target_corners.split('|'))
+    is_all = 'all' in corners_set
 
-        # Assign with correct ordre
-        for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']:
-            if corner in corners or corners[0] == 'all':
-                points.extend(corners_config[corner])
-            else:
-                if corner in ('top-left', 'top-right') and corners[0] == 'bottom':
-                    print('bottom / top-left & top-right')
-                    points.extend(corners_default[corner])
-                elif corner in ('bottom-left', 'bottom-right') and corners[0] == 'top':
-                    points.extend(corners_default[corner])
-                elif corner in ('top-right', 'bottom-right') and corners[0] == 'left':
-                    points.extend(corners_default[corner])
-                elif corner in ('top-left', 'bottom-left') and corners[0] == 'right':
-                    points.extend(corners_default[corner])
-                else:
-                    points.extend(corners_config[corner])
-        
-        print(f'points = {points}')
-        
-        del kwargs['target_corners']
-    else:
-        print('No corner Select - Normal rectangle') 
-        points.extend(
-            [
-            x2, y1,
-            x2, y1,
+    # Precalculate complexes conditions
+    edge_map = {
+        'top': {'top-left', 'top-right'},
+        'bottom': {'bottom-left', 'bottom-right'},
+        'left': {'top-left', 'bottom-left'},
+        'right': {'top-right', 'bottom-right'}
+    }
 
-            x2, y2,
-            x2, y2,
-
-            x1, y2,
-            x1, y2,
-
-            x1, y1,
-            x1, y1]
-        )
-        
+    # Expand corners_set
+    for edge, edge_corners in edge_map.items():
+        if edge in corners_set:
+            corners_set.update(edge_corners)
+    
+    points = []
+    for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']:
+        if is_all or corner in corners_set:
+            points.extend(corners_config[corner])
+        else:
+            points.extend(corners_default[corner])
+    
     return canvas.create_polygon(points, smooth=True, **kwargs)
 
 
@@ -91,7 +80,10 @@ def main():
 
     # Top Title Label
     canvas_top = tk.Canvas(root, width=200, height=80, highlightthickness=0)
+    start = time.perf_counter()
     rounded_rectangle(canvas_top, 0,0,200,75, 25, fill='red', target_corners ='right' , outline='')
+    print(f'time execution : {time.perf_counter() - start:.6f}s')
+
     canvas_top.create_text(100, 40, anchor='c', text='Main Title', font=('Arial', 12, 'bold'), fill='white')
 
     # Main frame
