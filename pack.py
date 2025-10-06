@@ -33,12 +33,11 @@ def rounded_rectangle(canvas, x1, y1, x2, y2, r=25, **kwargs):
 
         # Config of each rounded corner
         corners_config = {
-            'top-left' : [x1+r, y1, x1, y1+r],
-            'top-right' : [x2-r, y1, x2, y1+r],
-            'bottom-right': [x2-r, y2, x2, y2-r],
-            'bottom-left' : [x1+r, y2, x1, y2-r]
+            'top-left' : [x1, y1+r, x1, y1, x1+r, y1 ],
+            'top-right' : [x2-r, y1, x2, y1, x2, y1+r],
+            'bottom-right': [x2, y2-r, x2, y2, x2-r, y2],
+            'bottom-left' : [x1+r, y2, x1, y2, x1, y2-r]
         }
-
         # Default corners
         corners_default = {
             'top-left' : [x1, y1, x1, y1],
@@ -49,10 +48,20 @@ def rounded_rectangle(canvas, x1, y1, x2, y2, r=25, **kwargs):
 
         # Assign with correct ordre
         for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']:
-            if corner in corners:
+            if corner in corners or corners[0] == 'all':
                 points.extend(corners_config[corner])
             else:
-                points.extend(corners_default[corner])
+                if corner in ('top-left', 'top-right') and corners[0] == 'bottom':
+                    print('bottom / top-left & top-right')
+                    points.extend(corners_default[corner])
+                elif corner in ('bottom-left', 'bottom-right') and corners[0] == 'top':
+                    points.extend(corners_default[corner])
+                elif corner in ('top-right', 'bottom-right') and corners[0] == 'left':
+                    points.extend(corners_default[corner])
+                elif corner in ('top-left', 'bottom-left') and corners[0] == 'right':
+                    points.extend(corners_default[corner])
+                else:
+                    points.extend(corners_config[corner])
         
         print(f'points = {points}')
         
@@ -82,7 +91,7 @@ def main():
 
     # Top Title Label
     canvas_top = tk.Canvas(root, width=200, height=80, highlightthickness=0)
-    rounded_rectangle(canvas_top, 0,0,200,75, 25, fill='red', target_corners ='top-left|bottom-right' , outline='')
+    rounded_rectangle(canvas_top, 0,0,200,75, 25, fill='red', target_corners ='right' , outline='')
     canvas_top.create_text(100, 40, anchor='c', text='Main Title', font=('Arial', 12, 'bold'), fill='white')
 
     # Main frame
