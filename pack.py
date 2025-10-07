@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 import random
 import time
 
@@ -25,9 +26,48 @@ def click():
         clicked = False
 
 def rounded_rectangle(canvas, x1, y1, x2, y2, r=25, **kwargs):
-
+    """
+    Draw a rounded rectangle on a tkinter canvas with customizable corner rounding.
+    
+    Parameters:
+    -----------
+    canvas : tkinter.Canvas
+        The canvas widget to draw on
+    x1, y1 : int
+        Top-left coordinates of the rectangle
+    x2, y2 : int
+        Bottom-right coordinates of the rectangle
+    r : int, optional
+        Radius of the rounded corners (default: 25)
+    **kwargs : dict
+        Additional arguments passed to canvas.create_polygon()
+        Special keyword:
+            target_corners (str): Pipe-separated string specifying which corners to round.
+                                 Options: 'top-left', 'top-right', 'bottom-left', 'bottom-right',
+                                 'all', 'top', 'bottom', 'left', 'right'
+                                 Example: 'top-left|top-right' or 'bottom'
+    
+    Returns:
+    --------
+    int
+        The canvas item ID of the created polygon
+    
+    Examples:
+    ---------
+    # Round only top corners
+    rounded_rectangle(canvas, 10, 10, 200, 100, r=20, target_corners='top', fill='blue')
+    
+    # Round specific corners
+    rounded_rectangle(canvas, 10, 10, 200, 100, target_corners='top-left|bottom-right')
+    
+    # Round all corners
+    rounded_rectangle(canvas, 10, 10, 200, 100, target_corners='all')
+    """
     # Early return if not target_corners
     target_corners = kwargs.pop('target_corners', None)
+
+    if 'outline' not in kwargs and 'fill' in kwargs:
+        kwargs['outline'] = kwargs['fill']
 
     if not target_corners:
         points = [x2, y1, x2, y1, x2, y2, x2, y2, x1, y2, x1, y2, x1, y1, x1, y1]
@@ -81,7 +121,7 @@ def main():
     # Top Title Label
     canvas_top = tk.Canvas(root, width=200, height=80, highlightthickness=0)
     start = time.perf_counter()
-    rounded_rectangle(canvas_top, 0,0,200,75, 25, fill='red', target_corners ='right' , outline='')
+    rounded_rectangle(canvas_top, 0,0,200,75, 25, fill='red', target_corners ='all' )
     print(f'time execution : {time.perf_counter() - start:.6f}s')
 
     canvas_top.create_text(100, 40, anchor='c', text='Main Title', font=('Arial', 12, 'bold'), fill='white')
@@ -94,7 +134,44 @@ def main():
     frame_2 = tk.Frame(main_frame, bg='cyan')
     frame_3 = tk.Frame(main_frame, bg='purple')
 
-    
+    # 1st section
+    # widgets
+    title_frame = tk.Frame(frame_1, bg='orange')
+    radio_frame = tk.Frame(frame_1, bg='brown')
+
+    # Title
+    canvas_title = tk.Canvas(title_frame, width=160, height=30, highlightthickness=0, bg=title_frame['bg'])
+    rounded_rectangle(canvas_title, 0,0,160,30, 20, fill='red', target_corners ='bottom' ,width=0)
+    canvas_title.create_text(80, 15, anchor='c', text='1st Section', font=('Arial', 10, 'bold'), fill='white')
+
+    # Radio Buttons
+    category_value = tk.StringVar(value='DAY')
+
+    # Moderne Style
+    style = ttk.Style()
+    style.configure('Modern.TRadiobutton', 
+                    background= radio_frame['bg'],
+                    foreground='white',
+                    font=('Arial', 10, 'bold'),
+                    focuscolor='none')
+
+    def show_input():
+        print(category_value.get())
+
+    radio_1 = ttk.Radiobutton(radio_frame, text='Day', style='Modern.TRadiobutton', variable=category_value, value='DAY', )
+    radio_2 = ttk.Radiobutton(radio_frame, text='Week', style='Modern.TRadiobutton', variable=category_value, value='WEEK', )
+    radio_3 = ttk.Radiobutton(radio_frame, text='Month', style='Modern.TRadiobutton', variable=category_value, value='MONTH', )
+    btn = tk.Button(radio_frame, text='click', command=show_input)
+
+    # Layout 1st Section
+    canvas_title.pack(side='top')
+    title_frame.pack(side='top', fill='x')
+
+    radio_1.pack(side='left', expand=True, fill='both')
+    radio_2.pack(side='left', expand=True, fill='both')
+    radio_3.pack(side='left', expand=True, fill='both')
+    radio_frame.pack(side='bottom', expand=True, fill='x')
+    btn.pack()
 
     # Layout
     canvas_top.pack(side='top', pady=20)
@@ -102,6 +179,8 @@ def main():
     frame_1.pack(side='top', expand=True, fill='both', padx=10, pady=(10,0))
     frame_2.pack(side='top', expand=True, fill='both', padx=10, pady=(10,0))
     frame_3.pack(side='top', expand=True, fill='both', padx=10, pady=(10,10))
+
+    print('value is : ', category_value.get())
 
 
     root.mainloop()
