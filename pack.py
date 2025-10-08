@@ -266,24 +266,35 @@ def main():
     def show_input_scale():
         print(entry_string_value.get())
 
-    # scale = ttk.Scale(scale_frame, bootstyle="info", from_=0, to=100, variable=scale_float_value )
-    # entry_scale = ttk.Entry(scale_frame, bootstyle="info", width=5, textvariable=entry_string_value)
-    # btn_scale = ttk.Button(scale_frame, text='click', command=show_input_scale, bootstyle="success")
+    scale = tk.Scale(scale_frame, from_=0, to=100, orient='horizontal', highlightthickness=0, borderwidth=0, sliderrelief='flat', sliderlength=20, showvalue= False, bg='#CF934F', troughcolor='#3f3547',activebackground='#ED9A41', variable=scale_float_value )
+    entry_scale = tk.Entry(scale_frame, 
+                           width=5, 
+                           textvariable=entry_string_value,
+                           bg='#3f3547',           
+                           fg='white',
+                            insertbackground='white',
+                            relief='flat',
+                            borderwidth=2,          
+                            highlightthickness=1,   
+                            highlightbackground='#564068',  
+                            highlightcolor='#CF934F',  
+                            justify='center' )
+    btn_scale = tk.Button(scale_frame, text='click', command=show_input_scale)
 
     # Bind scale when is in motion (drag it)
-    #scale.bind('<Motion>', update_entry_from_scale) 
+    scale.bind('<Motion>', update_entry_from_scale) 
 
     # Bind entry when is typing
-    # entry_scale.bind('<Key>', update_scale_from_entry) 
-    # scale.pack(pady=10, fill='x')
+    entry_scale.bind('<Key>', update_scale_from_entry) 
+    scale.pack(pady=10, fill='x')
 
     # Layout 2nd Section
     canvas_title_2.pack(side='top')
     title_frame_2.pack(side='top', fill='x')
-    # scale.pack(side='left', expand=True, fill='both')
-    # entry_scale.pack(side='left')
+    scale.pack(side='left', expand=True, fill='both')
+    entry_scale.pack(side='left')
     scale_frame.pack(side='bottom', expand=True, fill='x')
-    # btn_scale.pack()
+    btn_scale.pack()
 
     entry_string_value.trace_add('write', update_scale_from_entry)
     update_entry_from_scale(None)
