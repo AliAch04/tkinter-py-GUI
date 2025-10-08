@@ -140,8 +140,6 @@ def main():
         'TScale', 
         background="#564068", 
     )
-    
-
 
     main_frame_top = ttk.Frame(root)
 
@@ -207,20 +205,35 @@ def main():
     # Button
     scale_float_value = tk.DoubleVar(value=10)
     entry_string_value = tk.StringVar(value="10")
+    is_setting_entry_value = False 
 
     def update_entry_from_scale(event=None):
+        # Reject updating the scale when entry is modifing
+        nonlocal is_setting_entry_value 
+        if is_setting_entry_value:
+            return
         float_val = scale_float_value.get()
         int_val = int(float_val) 
+        is_setting_entry_value = True
+
         entry_string_value.set(str(int_val))
+        is_setting_entry_value = False
     
     def update_scale_from_entry(*args):
         #print(f'the key released : {args[0].keysym}')
+        nonlocal is_setting_entry_value
+
+        # Handle the infinite loop when .set() is called
+        if is_setting_entry_value:
+            return
+        
         # Handle none numerical input 
         try:
             entry_val_str = entry_string_value.get()
 
             # Handle Empty input
             if not entry_val_str:
+                scale_float_value.set(0)
                 return
             
             new_int_val = int(entry_val_str)
@@ -228,6 +241,12 @@ def main():
             val_clamped = max(0, min(100, new_int_val))
 
             scale_float_value.set(val_clamped)
+
+            # Handle entry input loop error
+            if str(val_clamped) != entry_string_value:
+                is_setting_entry_value = True
+                entry_string_value.set(str(val_clamped))
+                is_setting_entry_value = False 
 
             
         
