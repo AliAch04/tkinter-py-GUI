@@ -264,7 +264,20 @@ def main():
             print('Only numerical values')
     
     def update_label(*args):
-        log_input.config(text=f'You will be notified {entry_string_value.get()} times every {category_value.get()}')
+        # Clear the text widget
+        log_input.config(state='normal')
+        log_input.delete('1.0', 'end')
+        
+        # Insert text with different formatting
+        log_input.insert('end', 'You will be notified ', 'nrml')
+        log_input.insert('end', entry_string_value.get(), 'bold')
+        log_input.insert('end', ' times every ', 'nrml')
+        log_input.insert('end', category_value.get(), 'bold')
+
+        # Center the text
+        log_input.tag_add('center', '1.0', 'end')
+        
+        log_input.config(state='disabled')
 
     scale = tk.Scale(scale_frame, from_=0, to=100, orient='horizontal', highlightthickness=0, borderwidth=0, sliderrelief='flat', sliderlength=20, showvalue= False, bg='#CF934F', troughcolor='#3f3547',activebackground='#ED9A41', variable=scale_float_value )
     entry_scale = tk.Entry(scale_frame, 
@@ -279,9 +292,27 @@ def main():
                             highlightbackground='#564068',  
                             highlightcolor='#CF934F',  
                             justify='center' )
-    label_font = font.Font(family="TkDefaultFont", size=10, weight="bold")
-    log_input = tk.Label(frame_2, text=f'You will be notified {entry_string_value.get()} times every {category_value.get()}', fg='white', bg='#564068', font=label_font)
+    log_input = tk.Text(frame_2, 
+                    height=1, 
+                    fg='white', 
+                    bg='#564068',
+                    relief='flat',
+                    borderwidth=0,
+                    highlightthickness=0,
+                    wrap='none',
+                    cursor='arrow')
     
+    # Configure normal/center text font tag
+    log_input.tag_configure('nrml', font=('TkDefaultFont', 10))
+    log_input.tag_configure('center', justify='center')
+    
+    # Configure bold tag
+    log_input.tag_configure('bold', font=('TkDefaultFont', 11, 'bold'))
+
+    # No way you can edit
+    log_input.config(state='disabled')
+
+
     # Automatique log update when variable changing 
     entry_string_value.trace_add('write', update_label)
     category_value.trace_add('write', update_label)
