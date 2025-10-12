@@ -146,9 +146,6 @@ def main():
             else:
                 radio.config(selectcolor='white')
 
-    # Radio Buttons
-    category_value = tk.StringVar(value='DAY')
-
     radio_1 = tk.Radiobutton(
         radio_frame, 
         text='Day',  
@@ -190,9 +187,11 @@ def main():
         highlightthickness=0,
         command=update_radio_colors
     )
+    # set the initial value (DAY)
+    update_radio_colors()
 
-    # Tracer les changements de la variable (pour mise à jour automatique)
-    category_value.trace_add('write', update_radio_colors)
+    # Trace the change of the variable (automatic update)
+    #category_value.trace_add('write', update_radio_colors)
 
     # Layout 1st Section
     canvas_title.pack(side='top')
@@ -213,7 +212,7 @@ def main():
     rounded_rectangle(canvas_title_2, 0,0,160,30, 25, fill="#CF934F", target_corners ='bottom' ,width=0)
     canvas_title_2.create_text(80, 15, anchor='c', text='2nd Section', font=('Arial', 10, 'bold'), fill='white')
 
-    # Button
+    # Variables
     scale_float_value = tk.DoubleVar(value=10)
     entry_string_value = tk.StringVar(value="10")
     is_setting_entry_value = False 
@@ -261,10 +260,9 @@ def main():
 
         except ValueError:
             print('Only numerical values')
-
-
-    def show_input_scale():
-        print(entry_string_value.get())
+    
+    def update_label(*args):
+        log_input.config(text=f'You will be notified {entry_string_value.get()} every {category_value.get()}')
 
     scale = tk.Scale(scale_frame, from_=0, to=100, orient='horizontal', highlightthickness=0, borderwidth=0, sliderrelief='flat', sliderlength=20, showvalue= False, bg='#CF934F', troughcolor='#3f3547',activebackground='#ED9A41', variable=scale_float_value )
     entry_scale = tk.Entry(scale_frame, 
@@ -279,7 +277,11 @@ def main():
                             highlightbackground='#564068',  
                             highlightcolor='#CF934F',  
                             justify='center' )
-    btn_scale = tk.Button(scale_frame, text='click', command=show_input_scale)
+    log_input = tk.Label(frame_2, text=f'You will be notified {entry_string_value.get()} every {category_value.get()}', fg='white', bg='#564068')
+    
+    # Automatique log update when variable changing 
+    entry_string_value.trace_add('write', update_label)
+    category_value.trace_add('write', update_label)
 
     # Bind scale when is in motion (drag it)
     scale.bind('<Motion>', update_entry_from_scale) 
@@ -291,13 +293,41 @@ def main():
     # Layout 2nd Section
     canvas_title_2.pack(side='top')
     title_frame_2.pack(side='top', fill='x')
+    scale_frame.pack(side='top', expand=True, fill='x')
+
     scale.pack(side='left', expand=True, fill='both')
     entry_scale.pack(side='left')
-    scale_frame.pack(side='bottom', expand=True, fill='x')
-    btn_scale.pack()
+    log_input.pack(side='top', expand=True)
 
     entry_string_value.trace_add('write', update_scale_from_entry)
     update_entry_from_scale(None)
+
+    # 3rd section
+    # widgets
+    buttons_frame = tk.Frame(frame_3, bg='#564068')
+
+    def submit_fct(*args):
+        pass
+    
+    # Buttons
+    submit = tk.Button(
+        buttons_frame,
+        activebackground='#ED9A41',
+        activeforeground='#cccccc', 
+        text='Submit',  
+        bg='#CF934F',  
+        fg='white', 
+        relief='flat',
+        overrelief='ridge',
+        highlightthickness=0,
+        command=submit_fct  
+    )
+
+    # Layout 3st Section
+    buttons_frame.pack(expand=True, fill='x')
+
+    submit.pack(ipadx=10, ipady=0)
+
 
     # Layout
     main_frame_top.pack(side='top',fill='both')
@@ -306,9 +336,6 @@ def main():
     frame_1.pack(side='top', expand=True, fill='both', padx=10, pady=(10,0))
     frame_2.pack(side='top', expand=True, fill='both', padx=10, pady=(10,0))
     frame_3.pack(side='top', expand=True, fill='both', padx=10, pady=(10,10))
-
-    print('value is : ', category_value.get())
-
 
     root.mainloop()
 
