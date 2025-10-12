@@ -1,6 +1,8 @@
 import tkinter as tk
 import ttkbootstrap as ttk
 from tkinter import ttk as tkttk
+from tkinter import font
+
 import time
 
 root = tk.Tk() 
@@ -262,7 +264,7 @@ def main():
             print('Only numerical values')
     
     def update_label(*args):
-        log_input.config(text=f'You will be notified {entry_string_value.get()} every {category_value.get()}')
+        log_input.config(text=f'You will be notified {entry_string_value.get()} times every {category_value.get()}')
 
     scale = tk.Scale(scale_frame, from_=0, to=100, orient='horizontal', highlightthickness=0, borderwidth=0, sliderrelief='flat', sliderlength=20, showvalue= False, bg='#CF934F', troughcolor='#3f3547',activebackground='#ED9A41', variable=scale_float_value )
     entry_scale = tk.Entry(scale_frame, 
@@ -277,7 +279,8 @@ def main():
                             highlightbackground='#564068',  
                             highlightcolor='#CF934F',  
                             justify='center' )
-    log_input = tk.Label(frame_2, text=f'You will be notified {entry_string_value.get()} every {category_value.get()}', fg='white', bg='#564068')
+    label_font = font.Font(family="TkDefaultFont", size=10, weight="bold")
+    log_input = tk.Label(frame_2, text=f'You will be notified {entry_string_value.get()} times every {category_value.get()}', fg='white', bg='#564068', font=label_font)
     
     # Automatique log update when variable changing 
     entry_string_value.trace_add('write', update_label)
@@ -307,8 +310,18 @@ def main():
     buttons_frame = tk.Frame(frame_3, bg='#564068')
 
     def submit_fct(*args):
-        pass
-    
+        # Setup the pop up window
+        notification_window = tk.Toplevel(root)
+        notification_window.title("Notification")
+        notification_window.geometry("200x80-0+0")
+
+        # Widgets
+        text = tk.Label(notification_window, text='Allah Allah test')
+        text.pack()
+
+        # Automatic destory after the selected value (entry_string_value)
+        notification_window.after(int(entry_string_value.get())*100, notification_window.destroy)
+
     # Buttons
     submit = tk.Button(
         buttons_frame,
