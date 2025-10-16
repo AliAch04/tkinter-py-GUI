@@ -115,17 +115,17 @@ def show_notification(message="Allah Allah test"):
     notification_window.configure(bg='#CF934F', relief='raised', borderwidth=1)
     
     # Calculate position (top-right corner)
-    root_x = root.winfo_x()
-    root_y = root.winfo_y()
-    root_width = root.winfo_width()
+    # root_x = root.winfo_x()
+    # root_y = root.winfo_y()
+    # root_width = root.winfo_width()
     
     notification_width = 200
     notification_height = 60
     
-    pos_x = root_x + root_width - notification_width - 10
-    pos_y = root_y + 10
+    # pos_x = root_x + root_width - notification_width - 10
+    # pos_y = root_y + 10
     
-    notification_window.geometry(f"{notification_width}x{notification_height}+{pos_x}+{pos_y}")
+    notification_window.geometry(f"{notification_width}x{notification_height}-{0}+{0}")
     
     # Notification content
     label = tk.Label(
@@ -334,6 +334,7 @@ def main():
     canvas_title_2.create_text(80, 15, anchor='c', text='2nd Section', font=('Arial', 10, 'bold'), fill='white')
 
     # Variables
+    max_val_entry = 3000  # Define the maximum value for the scale
     scale_float_value = tk.DoubleVar(value=10)
     entry_string_value = tk.StringVar(value="10")
     is_setting_entry_value = False 
@@ -368,8 +369,8 @@ def main():
                 return
             
             new_int_val = int(entry_val_str)
-            # Clamped the value to the bounds (0, 100)
-            val_clamped = max(0, min(100, new_int_val))
+            # Clamped the value to the bounds (0, ~500)
+            val_clamped = max(0, min(max_val_entry, new_int_val))
 
             scale_float_value.set(val_clamped)
 
@@ -398,7 +399,7 @@ def main():
         
         log_input.config(state='disabled')
 
-    scale = tk.Scale(scale_frame, from_=0, to=100, orient='horizontal', highlightthickness=0, borderwidth=0, sliderrelief='flat', sliderlength=20, showvalue= False, bg='#CF934F', troughcolor='#3f3547',activebackground='#ED9A41', variable=scale_float_value )
+    scale = tk.Scale(scale_frame, from_=0, to=max_val_entry, orient='horizontal', highlightthickness=0, borderwidth=0, sliderrelief='flat', sliderlength=20, showvalue= False, bg='#CF934F', troughcolor='#3f3547',activebackground='#ED9A41', variable=scale_float_value )
     entry_scale = tk.Entry(scale_frame, 
                            width=5, 
                            textvariable=entry_string_value,
