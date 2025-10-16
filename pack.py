@@ -169,38 +169,44 @@ def notification_worker():
     """Worker function that runs in separate thread to handle notifications"""
     while not stop_notifications.is_set():
         try:
-            # Check for new notification tasks
-            task = notification_queue.get(block=True, timeout=1.0)
-            if task is None:  # Shutdown signal
-                break
-                
-            frequency, period = task
-            
-            root.after(0, lambda: add_to_log(f"Starting: {frequency} times every {period}"))
-
-            interval = calculate_interval(period, frequency)
-            root.after(0, lambda: add_to_log(f"Interval: {interval:.1f} seconds"))
-            
-            # Envoyer les notifications avec des intervalles precis
-            for i in range(int(frequency)):
-                if stop_notifications.is_set():
+            # Check for new tasks with timeout to allow frequent stop checks
+            try:
+                task = notification_queue.get(block=True, timeout=0.5)
+                if task is None:  # Shutdown signal
                     break
+                    
+                frequency, period = task
                 
-                # Calculer le délai pour cette notification
-                delay = int((i * interval) * 1000)  
-                
-                # Planifier la notification dans le thread principal
-                root.after(delay, show_notification, f"Notification {i + 1}/{frequency}")
-                root.after(delay + 10, lambda i=i: add_to_log(f"Sent notification {i + 1}/{frequency}"))
-                
-                # Petite pause pour eviter la surcharge
-                time.sleep(0.01)
+                root.after(0, lambda: add_to_log(f"Starting: {frequency} times every {period}"))
 
-            if not stop_notifications.is_set():
-                root.after(0, lambda: add_to_log(f"Completed: {frequency} notifications scheduled"))
+                interval = calculate_interval(period, frequency)
+                root.after(0, lambda: add_to_log(f"Interval: {interval:.1f} seconds"))
                 
-        except queue.Empty:
-            continue    # No new task so continue the verification
+                # Envoyer les notifications avec des intervalles precis
+                for i in range(int(frequency)):
+                    if stop_notifications.is_set():
+                        root.after(0, lambda: add_to_log("Notifications stopped by user"))
+                        break
+                    
+                    # Attendre l'intervalle avec des verifications fréquentes
+                    wait_remaining = interval
+                    while wait_remaining > 0 and not stop_notifications.is_set():
+                        # Dormir par petits incréments pour pouvoir arrêter rapidement
+                        sleep_time = min(0.5, wait_remaining)  
+                        time.sleep(sleep_time)
+                        wait_remaining -= sleep_time
+                    
+                    if not stop_notifications.is_set():
+                        # Planifier la notification
+                        root.after(0, show_notification, f"Notification {i + 1}/{frequency}")
+                        root.after(0, lambda i=i: add_to_log(f"Sent notification {i + 1}/{frequency}"))
+
+                if not stop_notifications.is_set():
+                        root.after(0, lambda: add_to_log(f"Completed: {frequency} notifications sent"))
+                        
+            except queue.Empty:
+                continue    # No new task so continue the verification
+
         except Exception as e:
             root.after(0, lambda: add_to_log(f"Error in notification worker: {str(e)}"))
             continue
@@ -217,6 +223,21 @@ def start_notification_system():
     notification_thread = threading.Thread(target=notification_worker, daemon=True)
     notification_thread.start()
     add_to_log("Notification system started")
+
+def stop_function():
+    """Stop all notifications"""
+    stop_notifications.set()
+    add_to_log("Stopping all notifications...")
+
+    # vider la queue des taches en attente
+    try:
+        while True:
+            notification_queue.get_nowait()
+    except queue.Empty:
+        pass
+    
+    # Afficher un message de confirmation
+    root.after(1000, lambda: add_to_log("All notifications stopped"))
 
 
 def main():
@@ -469,16 +490,14 @@ def main():
             add_to_log("Error: Frequency must be at least 1")
             return
         
-        add_to_log(f"Starting schedule: {frequency} times every {period}")
+        # S'assurer que le système est démarré
+        if not notification_thread or not notification_thread.is_alive():
+            start_notification_system()
 
-
-        # Start notification system if not already
-        start_notification_system()
-
-        # Add task to queue
+        # Ajouter la tâche à la queue
         notification_queue.put((frequency, period))
-
-        # Show confirmation
+        
+        add_to_log(f"New schedule queued: {frequency} times every {period}")
         show_confirmation_popup(frequency, period)
 
     def show_confirmation_popup(frequency, period):
@@ -501,10 +520,7 @@ def main():
         # Auto-delete
         notification_window.after(2000, notification_window.destroy)
 
-    def stop_function():
-        """Stop all notifications"""
-        stop_notifications.set()
-        add_to_log("All notifications stopped")
+   
 
     # Buttons
     submit = tk.Button(
