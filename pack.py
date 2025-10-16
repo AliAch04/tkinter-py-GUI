@@ -2,6 +2,9 @@ import tkinter as tk
 import ttkbootstrap as ttk
 from tkinter import ttk as tkttk
 from tkinter import font
+import threading
+import queue
+import math
 
 import time
 
@@ -9,6 +12,11 @@ root = tk.Tk()
 root.title('Pack testing')
 root.geometry('400x600')
 root.configure(bg='#3f3547')
+
+# Queue for thread-safe communication between threads
+notification_queue = queue.Queue()
+notification_thread = None
+stop_notifications = threading.Event()
 
 def rounded_rectangle(canvas, x1, y1, x2, y2, r=25, **kwargs):
     """
@@ -99,9 +107,123 @@ def rounded_rectangle(canvas, x1, y1, x2, y2, r=25, **kwargs):
     
     return canvas.create_polygon(points, smooth=True, **kwargs)
 
+def show_notification(message="Allah Allah test"):
+    """Create a notification popup in top-right corner"""
+    notification_window = tk.Toplevel(root)
+    notification_window.overrideredirect(True)  # Remove window decorations
+    notification_window.attributes('-topmost', True)
+    notification_window.configure(bg='#CF934F', relief='raised', borderwidth=1)
+    
+    # Calculate position (top-right corner)
+    root_x = root.winfo_x()
+    root_y = root.winfo_y()
+    root_width = root.winfo_width()
+    
+    notification_width = 200
+    notification_height = 60
+    
+    pos_x = root_x + root_width - notification_width - 10
+    pos_y = root_y + 10
+    
+    notification_window.geometry(f"{notification_width}x{notification_height}+{pos_x}+{pos_y}")
+    
+    # Notification content
+    label = tk.Label(
+        notification_window, 
+        text=message, 
+        bg='#CF934F', 
+        fg='white',
+        font=('Arial', 10, 'bold'),
+        wraplength=180
+    )
+    label.pack(expand=True, fill='both', padx=10, pady=10)
+    
+    # Auto-close after 3 seconds
+    notification_window.after(3000, notification_window.destroy)
+    
+    # Add to log
+    add_to_log(f"Notification shown: {message}")
+
+def add_to_log(message):
+    """Add message to log input widget in thread-safe manner"""
+    timestamp = time.strftime("%H:%M:%S")
+    log_input.config(state='normal')
+    log_input.insert('end', f'\n[{timestamp}] {message}')
+    log_input.see('end')
+    log_input.config(state='disabled')
+
+def calculate_interval(period, frequency):
+    """Calculate interval in seconds based on period and frequency"""
+    frequency = int(frequency)
+    # Distribute notifications evenly throughout the day/week/mounth (Approximated)
+    if period == 'DAY':
+        return 86400 / frequency  
+    elif period == 'WEEK':
+        return 604800 / frequency  
+    elif period == 'MONTH':
+        return 2592000 / frequency  
+    
+    return 60  # fallback
+
+def notification_worker():
+    """Worker function that runs in separate thread to handle notifications"""
+    while not stop_notifications.is_set():
+        try:
+            # Check for new notification tasks
+            task = notification_queue.get(block=True, timeout=1.0)
+            if task is None:  # Shutdown signal
+                break
+                
+            frequency, period = task
+            
+            add_to_log(f"Starting notifications: {frequency} times every {period}")
+            
+            interval = calculate_interval(period, frequency)
+            add_to_log(f"Interval between notifications: {interval:.1f} seconds")
+            
+            notifications_sent = 0
+            start_time = time.time()
+            
+            while not stop_notifications.is_set() and notifications_sent < int(frequency):
+                elapsed = time.time() - start_time
+                expected_notifications = min(int(frequency), int(elapsed / interval) + 1)
+                
+                while notifications_sent < expected_notifications and not stop_notifications.is_set():
+                    # Schedule notification in main thread
+                    root.after(0, show_notification, f"Notification {notifications_sent + 1}/{frequency}")
+                    notifications_sent += 1
+                    add_to_log(f"Sent notification {notifications_sent}/{frequency}")
+                
+                # Sleep briefly to avoid busy waiting
+                time.sleep(0.1)
+                
+            if notifications_sent >= int(frequency):
+                add_to_log(f"Completed: {notifications_sent} notifications sent")
+                # Wait for new task
+                continue
+                
+        except queue.Empty:
+            continue
+        except Exception as e:
+            add_to_log(f"Error in notification worker: {str(e)}")
+            continue
+
+def start_notification_system():
+    """Start the notification system in a separate thread"""
+    global notification_thread
+    
+    if notification_thread and notification_thread.is_alive():
+        stop_notifications.set()
+        notification_thread.join(timeout=2.0)
+    
+    stop_notifications.clear()
+    notification_thread = threading.Thread(target=notification_worker, daemon=True)
+    notification_thread.start()
+    add_to_log("Notification system started")
+
 
 def main():
-    global root
+    global root, log_input
     main_frame_top = tk.Frame(root, bg='#3f3547')
 
     # Top Title Label
@@ -293,7 +415,7 @@ def main():
                             highlightcolor='#CF934F',  
                             justify='center' )
     log_input = tk.Text(frame_2, 
-                    height=3, 
+                    height=5, 
                     fg='white', 
                     bg='#564068',
                     relief='flat',
@@ -341,46 +463,51 @@ def main():
     buttons_frame = tk.Frame(frame_3, bg='#564068')
 
     def submit_fct(*args):
-        # Get current values
+        """Start the notification system with current settings"""
         frequency = entry_string_value.get()
         period = category_value.get()
-
-        # Enable log_input for editing
-        log_input.config(state='normal')
         
-        # Insert submission data with timestamp
-        timestamp = time.strftime("%H:%M:%S")
-        log_input.insert('end', f'\n[{timestamp}] Submitted: {frequency} times every {period}', 'bold')
-
-        # Scroll to the bottom to show latest entry
-        log_input.see('end')
+        if not frequency.isdigit() or int(frequency) < 1:
+            add_to_log("Error: Frequency must be at least 1")
+            return
         
-        # Disable editing again
-        log_input.config(state='disabled')
+        add_to_log(f"Starting schedule: {frequency} times every {period}")
 
-        # Optional: Show confirmation popup
+
+        # Start notification system if not already
+        start_notification_system()
+
+        # Add task to queue
+        notification_queue.put((frequency, period))
+
+        # Show confirmation
+        show_confirmation_popup(frequency, period)
+
+    def show_confirmation_popup(frequency, period):
+        """Show confirmation popup"""
         notification_window = tk.Toplevel(root)
-        notification_window.title("Submission Confirmed")
+        notification_window.title("Schedule Started")
         notification_window.geometry("250x100")
         notification_window.configure(bg='#3f3547')
-        
-        # Center the popup relative to main window
         notification_window.transient(root)
         notification_window.grab_set()
         
-        # Popup content
         confirmation_label = tk.Label(
             notification_window, 
-            text=f"Settings saved!\n{frequency} times every {period}",
+            text=f"Schedule started!\n{frequency} times every {period}",
             bg='#3f3547',
             fg='white',
             font=('Arial', 10)
         )
         confirmation_label.pack(expand=True, pady=20)
-        
-        # Auto-close after 2 seconds
+        # Auto-delete
         notification_window.after(2000, notification_window.destroy)
-        
+
+    def stop_function():
+        """Stop all notifications"""
+        stop_notifications.set()
+        add_to_log("All notifications stopped")
+
     # Buttons
     submit = tk.Button(
         buttons_frame,
@@ -395,10 +522,23 @@ def main():
         command=submit_fct  
     )
 
+    stop_button = tk.Button(
+        buttons_frame,
+        activebackground='#FF6B6B',
+        activeforeground='#cccccc', 
+        text='Stop Notifications',  
+        bg='#FF5252',  
+        fg='white', 
+        relief='flat',
+        overrelief='ridge',
+        highlightthickness=0,
+        command=stop_function  
+    )
+
     # Layout 3st Section
     buttons_frame.pack(expand=True, fill='x')
-
     submit.pack(ipadx=10, ipady=0)
+    stop_button.pack(ipadx=10, ipady=5, pady=5)
 
 
     # Layout
@@ -408,6 +548,25 @@ def main():
     frame_1.pack(side='top', expand=True, fill='both', padx=10, pady=(10,0))
     frame_2.pack(side='top', expand=True, fill='both', padx=10, pady=(10,0))
     frame_3.pack(side='top', expand=True, fill='both', padx=10, pady=(10,10))
+
+    # Initialize
+    update_label()
+    add_to_log("Notification system ready")
+    
+    # Start notification system
+    start_notification_system()
+
+    # Process queue updates in main thread
+    def process_queue():
+        try:
+            while True:
+                # Just ensuring the queue doesnt filled up
+                notification_queue.get_nowait()
+        except queue.Empty:
+            pass
+        root.after(100, process_queue)
+    
+    process_queue()
 
     root.mainloop()
 
