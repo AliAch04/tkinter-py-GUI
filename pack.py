@@ -293,7 +293,7 @@ def main():
                             highlightcolor='#CF934F',  
                             justify='center' )
     log_input = tk.Text(frame_2, 
-                    height=1, 
+                    height=3, 
                     fg='white', 
                     bg='#564068',
                     relief='flat',
@@ -341,18 +341,46 @@ def main():
     buttons_frame = tk.Frame(frame_3, bg='#564068')
 
     def submit_fct(*args):
-        # Setup the pop up window
+        # Get current values
+        frequency = entry_string_value.get()
+        period = category_value.get()
+
+        # Enable log_input for editing
+        log_input.config(state='normal')
+        
+        # Insert submission data with timestamp
+        timestamp = time.strftime("%H:%M:%S")
+        log_input.insert('end', f'\n[{timestamp}] Submitted: {frequency} times every {period}', 'bold')
+
+        # Scroll to the bottom to show latest entry
+        log_input.see('end')
+        
+        # Disable editing again
+        log_input.config(state='disabled')
+
+        # Optional: Show confirmation popup
         notification_window = tk.Toplevel(root)
-        notification_window.title("Notification")
-        notification_window.geometry("200x80-0+0")
-
-        # Widgets
-        text = tk.Label(notification_window, text='Allah Allah test')
-        text.pack()
-
-        # Automatic destory after the selected value (entry_string_value)
-        notification_window.after(int(entry_string_value.get())*100, notification_window.destroy)
-
+        notification_window.title("Submission Confirmed")
+        notification_window.geometry("250x100")
+        notification_window.configure(bg='#3f3547')
+        
+        # Center the popup relative to main window
+        notification_window.transient(root)
+        notification_window.grab_set()
+        
+        # Popup content
+        confirmation_label = tk.Label(
+            notification_window, 
+            text=f"Settings saved!\n{frequency} times every {period}",
+            bg='#3f3547',
+            fg='white',
+            font=('Arial', 10)
+        )
+        confirmation_label.pack(expand=True, pady=20)
+        
+        # Auto-close after 2 seconds
+        notification_window.after(2000, notification_window.destroy)
+        
     # Buttons
     submit = tk.Button(
         buttons_frame,
