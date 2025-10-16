@@ -176,36 +176,33 @@ def notification_worker():
                 
             frequency, period = task
             
-            add_to_log(f"Starting notifications: {frequency} times every {period}")
-            
+            root.after(0, lambda: add_to_log(f"Starting: {frequency} times every {period}"))
+
             interval = calculate_interval(period, frequency)
-            add_to_log(f"Interval between notifications: {interval:.1f} seconds")
+            root.after(0, lambda: add_to_log(f"Interval: {interval:.1f} seconds"))
             
-            notifications_sent = 0
-            start_time = time.time()
-            
-            while not stop_notifications.is_set() and notifications_sent < int(frequency):
-                elapsed = time.time() - start_time
-                expected_notifications = min(int(frequency), int(elapsed / interval) + 1)
+            # Envoyer les notifications avec des intervalles precis
+            for i in range(int(frequency)):
+                if stop_notifications.is_set():
+                    break
                 
-                while notifications_sent < expected_notifications and not stop_notifications.is_set():
-                    # Schedule notification in main thread
-                    root.after(0, show_notification, f"Notification {notifications_sent + 1}/{frequency}")
-                    notifications_sent += 1
-                    add_to_log(f"Sent notification {notifications_sent}/{frequency}")
+                # Calculer le délai pour cette notification
+                delay = int((i * interval) * 1000)  
                 
-                # Sleep briefly to avoid busy waiting
-                time.sleep(0.1)
+                # Planifier la notification dans le thread principal
+                root.after(delay, show_notification, f"Notification {i + 1}/{frequency}")
+                root.after(delay + 10, lambda i=i: add_to_log(f"Sent notification {i + 1}/{frequency}"))
                 
-            if notifications_sent >= int(frequency):
-                add_to_log(f"Completed: {notifications_sent} notifications sent")
-                # Wait for new task
-                continue
+                # Petite pause pour eviter la surcharge
+                time.sleep(0.01)
+
+            if not stop_notifications.is_set():
+                root.after(0, lambda: add_to_log(f"Completed: {frequency} notifications scheduled"))
                 
         except queue.Empty:
-            continue
+            continue    # No new task so continue the verification
         except Exception as e:
-            add_to_log(f"Error in notification worker: {str(e)}")
+            root.after(0, lambda: add_to_log(f"Error in notification worker: {str(e)}"))
             continue
 
 def start_notification_system():
@@ -557,16 +554,16 @@ def main():
     start_notification_system()
 
     # Process queue updates in main thread
-    def process_queue():
-        try:
-            while True:
-                # Just ensuring the queue doesnt filled up
-                notification_queue.get_nowait()
-        except queue.Empty:
-            pass
-        root.after(100, process_queue)
+    # def process_queue():
+    #     try:
+    #         while True:
+    #             # Just ensuring the queue doesnt filled up
+    #             notification_queue.get_nowait()
+    #     except queue.Empty:
+    #         pass
+    #     root.after(100, process_queue)
     
-    process_queue()
+    # process_queue()
 
     root.mainloop()
 
