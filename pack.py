@@ -405,20 +405,39 @@ def main():
             print('Only numerical values')
     
     def update_label(*args):
-        # Clear the text widget
+        # Save the current state
+        current_state = log_input.cget('state')
+
+        # Enable modifications
         log_input.config(state='normal')
-        log_input.delete('1.0', 'end')
         
-        # Insert text with different formatting
+        # Save the current content (except the auto generated text )
+        existing_content = ""
+        if log_input.get('1.0', 'end-1c').strip():
+            # Extraire seulement les logs historiques (tout sauf la premiere ligne)
+            lines = log_input.get('1.0', 'end-1c').split('\n')
+            if len(lines) > 1:
+                existing_content = '\n'.join(lines[1:]) + '\n'
+        
+        # Effacer et réinsérer le contenu
+        log_input.delete('1.0', 'end')
+
+         # Inserer le nouveau texte formaté
         log_input.insert('end', 'You will be notified ', 'nrml')
         log_input.insert('end', entry_string_value.get(), 'bold')
         log_input.insert('end', ' times every ', 'nrml')
         log_input.insert('end', category_value.get(), 'bold')
+        log_input.insert('end', '\n')  # separation
 
-        # Center the text
-        log_input.tag_add('center', '1.0', 'end')
+        # Re-inserer le contenu existant si présent
+        if existing_content:
+            log_input.insert('end', existing_content)
         
-        log_input.config(state='disabled')
+        # Centrer seulement la premiere ligne
+        log_input.tag_add('center', '1.0', '2.0')
+        
+        # Remettre dans l etat précedent
+        log_input.config(state=current_state)
 
     scale = tk.Scale(scale_frame, from_=0, to=max_val_entry, orient='horizontal', highlightthickness=0, borderwidth=0, sliderrelief='flat', sliderlength=20, showvalue= False, bg='#CF934F', troughcolor='#3f3547',activebackground='#ED9A41', variable=scale_float_value )
     entry_scale = tk.Entry(scale_frame, 
@@ -508,6 +527,21 @@ def main():
         notification_window.configure(bg='#3f3547')
         notification_window.transient(root)
         notification_window.grab_set()
+
+        # Centred the pop up window within the root window
+        root.update_idletasks()
+        root_x = root.winfo_x()
+        root_y = root.winfo_y()
+        root_width = root.winfo_width()
+        root_height = root.winfo_height()
+        
+        popup_width = 250
+        popup_height = 100
+        
+        pos_x = root_x + (root_width - popup_width) // 2
+        pos_y = root_y + (root_height - popup_height) // 2
+        
+        notification_window.geometry(f"{popup_width}x{popup_height}+{pos_x}+{pos_y}")
         
         confirmation_label = tk.Label(
             notification_window, 
@@ -569,18 +603,6 @@ def main():
     
     # Start notification system
     start_notification_system()
-
-    # Process queue updates in main thread
-    # def process_queue():
-    #     try:
-    #         while True:
-    #             # Just ensuring the queue doesnt filled up
-    #             notification_queue.get_nowait()
-    #     except queue.Empty:
-    #         pass
-    #     root.after(100, process_queue)
-    
-    # process_queue()
 
     root.mainloop()
 
